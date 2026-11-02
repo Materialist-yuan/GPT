@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -47,6 +49,10 @@ func BenchmarkActorDurability(b *testing.B) {
 		{"wal-batch64", true, 64, time.Millisecond},
 		{"no-wal-batch1", false, 1, 0},
 		{"wal-batch1", true, 1, 0},
+		{"wal-batch64-0us", true, 64, 0},
+		{"wal-batch8-100us", true, 8, 100 * time.Microsecond},
+		{"wal-batch64-100us", true, 64, 100 * time.Microsecond},
+		{"wal-batch64-10ms", true, 64, 10 * time.Millisecond},
 	} {
 		b.Run(mode.name, func(b *testing.B) {
 			if b.N > 200000 {
@@ -72,7 +78,23 @@ func BenchmarkActorDurability(b *testing.B) {
 					b.Error(err)
 				}
 			}()
-			const players = 256
+			players, workers := 256, 32
+			for _, setting := range []struct {
+				name   string
+				target *int
+				limit  int
+			}{{"BENCH_PLAYERS", &players, 10000}, {"BENCH_WORKERS", &workers, 1024}} {
+				if value := os.Getenv(setting.name); value != "" {
+					n, err := strconv.Atoi(value)
+					if err != nil || n < 1 || n > setting.limit {
+						b.Fatalf("invalid %s", setting.name)
+					}
+					*setting.target = n
+				}
+			}
+			if (b.N+players-1)/players+1 > o.MaxReceiptsPerPlayer {
+				b.Fatal("iterations exceed per-player receipt capacity")
+			}
 			for i := 0; i < players; i++ {
 				if _, err := engine.Execute(context.Background(), createOp(fmt.Sprintf("bench_%d", i))); err != nil {
 					b.Fatal(err)
@@ -81,21 +103,29 @@ func BenchmarkActorDurability(b *testing.B) {
 			before := engine.Stats()
 			latencies := make([]int64, b.N)
 			var index atomic.Uint64
-			b.SetParallelism(8)
 			b.ReportAllocs()
 			b.ResetTimer()
 			begin := time.Now()
-			b.RunParallel(func(pb *testing.PB) {
-				for pb.Next() {
-					i := int(index.Add(1) - 1)
-					start := time.Now()
-					r, err := engine.Execute(context.Background(), game.Operation{PlayerID: fmt.Sprintf("bench_%d", i%players), RequestID: fmt.Sprintf("r_%d", i), Kind: "reward", Amount: 1})
-					latencies[i] = time.Since(start).Nanoseconds()
-					if err != nil || r.Status != 200 {
-						b.Errorf("operation failed: %v status=%d", err, r.Status)
+			var wg sync.WaitGroup
+			for worker := 0; worker < workers; worker++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for {
+						i := int(index.Add(1) - 1)
+						if i >= b.N {
+							return
+						}
+						start := time.Now()
+						r, err := engine.Execute(context.Background(), game.Operation{PlayerID: fmt.Sprintf("bench_%d", i%players), RequestID: fmt.Sprintf("r_%d", i), Kind: "reward", Amount: 1})
+						latencies[i] = time.Since(start).Nanoseconds()
+						if err != nil || r.Status != 200 {
+							b.Errorf("operation failed: %v status=%d", err, r.Status)
+						}
 					}
-				}
-			})
+				}()
+			}
+			wg.Wait()
 			elapsed := time.Since(begin)
 			b.StopTimer()
 			for i := 0; i < players; i++ {

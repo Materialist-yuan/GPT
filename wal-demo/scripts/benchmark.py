@@ -46,7 +46,24 @@ def execute(name, binary, pattern, iterations, extra=()):
         raise RuntimeError(log.read_text())
 
 
+matrix = os.environ.get('BENCH_MATRIX') == '1'
 try:
+    if matrix:
+        cases = [('uniform-'+m, m, '20000x', 256, 32) for m in
+                 ['no-wal-batch64', 'wal-batch1', 'wal-batch64-0us', 'wal-batch8-100us', 'wal-batch64-100us', 'wal-batch64', 'wal-batch64-10ms']]
+        cases += [(kind+'-'+m, m, '500x', players, workers) for kind,players,workers in
+                  [('single-worker',256,1), ('hot-player',1,32), ('uniform-short',256,32)]
+                  for m in ['wal-batch1', 'wal-batch64', 'wal-batch64-10ms']]
+        high_cases = [('high-concurrency-'+m, m, '20000x', 256, 256) for m in
+                      ['wal-batch8-100us', 'wal-batch64', 'wal-batch64-10ms']]
+        cases = high_cases if os.environ.get('BENCH_MATRIX_HIGH_ONLY') == '1' else cases + high_cases
+        for trial in range(3):
+            for name,mode,iterations,players,workers in cases if trial%2==0 else list(reversed(cases)):
+                environment.update(BENCH_PLAYERS=str(players), BENCH_WORKERS=str(workers))
+                execute(f'{name}-{trial+1}', './bin/actor-bench.test', '^BenchmarkActorDurability$/^'+mode+'$', iterations)
+                runs[-1].update(players=players, workers=workers, iterations=iterations, mode=mode)
+        # No profile or microbenchmark duplication in the matrix report.
+        sys.exit(0)
     modes = ['no-wal-batch64', 'wal-batch64', 'no-wal-batch1', 'wal-batch1']
     for trial in range(3):
         for mode in modes if trial % 2 == 0 else list(reversed(modes)):
