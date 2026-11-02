@@ -26,7 +26,7 @@ source scripts/env.sh
 
 ## 启动
 
-当前安装脚本面向此云环境的 **Linux amd64**，使用固定版本 Go 1.27.3，并在下载时验证官方 SHA-256。MongoDB 使用固定镜像摘要，通过本机 Docker 守护进程运行。
+当前安装脚本面向此云环境的 **Linux amd64**，使用固定版本 Go 1.27.3，并在下载时验证官方 SHA-256。MongoDB 通过仓库级共享 Docker 服务运行，使用固定镜像摘要和独立数据卷。
 
 ```bash
 cd /workspace/GPT/wal-demo
@@ -36,7 +36,7 @@ source scripts/env.sh
 ./bin/game-server
 ```
 
-`setup.sh` 安装或复用 `/workspace/.toolchains/go1.27.3` 下的 Go，校验模块并生成 `bin/game-server`；`env.sh` 让后续终端命令使用这个 Go 工具链。`mongo.sh` 可重复运行，启动名为 `game-assets-mongo` 的容器并等待数据库 ping 成功，数据保存在 Docker 卷 `game-assets-mongo-data`。
+`setup.sh` 安装或复用 `/workspace/.toolchains/go1.27.3` 下的 Go，校验模块并生成 `bin/game-server`；`env.sh` 让后续终端命令使用这个 Go 工具链。`mongo.sh` 可重复运行，它会启动仓库内 [共享 MongoDB](../infra/mongo/README.md) 并等待 ping 成功。共享数据保存在 Docker 卷 `gpt-demo-mongo-data`；`wal-demo` 使用其中的 `game_assets` 数据库，其他 Demo 应使用不同数据库名。
 
 在另一个终端执行功能检查：
 
@@ -53,10 +53,10 @@ python3 scripts/smoke.py
 | --- | --- | --- |
 | `HTTP_ADDR` | `127.0.0.1:8080` | API 监听地址 |
 | `MONGO_URI` | `mongodb://127.0.0.1:27017` | MongoDB 连接地址 |
-| `MONGO_DATABASE` | `game_assets` | 数据库名 |
+| `MONGO_DATABASE` | `game_assets` | wal-demo 在共享 MongoDB 中使用的数据库 |
 | `WAL_PATH` | `./data/assets.wal` | WAL 文件路径，相对路径基于启动目录 |
 
-停止 API 使用 `Ctrl+C`。再次运行 `./bin/game-server` 会先恢复 WAL，再开始监听请求。MongoDB 容器可以通过 `docker stop game-assets-mongo` 停止；以后运行 `bash scripts/mongo.sh` 恢复服务，不需要删除数据卷。
+停止 API 使用 `Ctrl+C`。再次运行 `./bin/game-server` 会先恢复 WAL，再开始监听请求。执行 `bash scripts/mongo.sh down` 可以停止共享 MongoDB 容器，数据卷会保留；以后运行 `bash scripts/mongo.sh` 恢复服务。
 
 ## 调用接口
 

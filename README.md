@@ -16,17 +16,17 @@
 
 ## 运行 wal-demo
 
-在此云环境中，从仓库根目录执行（需要本机 Docker 可用）：
+仓库内的 Demo 共用一个通过 Docker Compose 启动的 MongoDB 开发服务。首次启动时，从仓库根目录执行（需要本机 Docker 可用）：
 
 ```bash
+bash infra/mongo/mongo.sh up
 cd wal-demo
 bash scripts/setup.sh
-bash scripts/mongo.sh
 source scripts/env.sh
 ./bin/game-server
 ```
 
-安装脚本针对 Linux amd64，安装经 SHA-256 校验的 Go 1.27.3；MongoDB 使用固定摘要的官方镜像。工具链和缓存位于 `/workspace`，详细环境变量见 [Demo 文档](wal-demo/README.md#启动)。
+`wal-demo/scripts/mongo.sh` 仍可启动同一共享服务。安装脚本针对 Linux amd64，安装经 SHA-256 校验的 Go 1.27.3；MongoDB 使用固定摘要的官方镜像。工具链和缓存位于 `/workspace`，详细环境变量见 [Demo 文档](wal-demo/README.md#启动)。
 
 另开终端，从仓库根目录执行：
 
@@ -59,13 +59,15 @@ WAL 和 MongoDB 数据都需要保留；这里只重放未完成记录，WAL 不
 
 ```bash
 source scripts/env.sh
-bash scripts/mongo.sh
+bash scripts/mongo.sh up
 MONGO_TEST_URI=mongodb://127.0.0.1:27017 go test -race -count=1 ./...
 go vet ./...
 go build -o bin/game-server ./cmd/server
 ```
 
 未设置 `MONGO_TEST_URI` 时，MongoDB 集成测试会跳过。修改文档不需要重跑应用测试，应检查路径、命令与实现是否一致。
+
+共享 MongoDB 的镜像、数据卷、启停命令和多 Demo 数据库隔离约定见 [MongoDB 开发服务](infra/mongo/README.md)。
 
 ## 仓库约定
 
