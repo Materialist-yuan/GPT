@@ -34,7 +34,7 @@ func TestListenerRequiresTokenOutsideLoopback(t *testing.T) {
 }
 
 func TestInvalidConfigurationRefused(t *testing.T) {
-	for _, name := range []string{"ACTOR_SHARDS", "ACTOR_QUEUE", "ACTOR_BATCH", "ACTOR_MAX_PLAYERS", "ACTOR_MAX_RECEIPTS", "ACTOR_BATCH_WINDOW", "ACTOR_FLUSH_INTERVAL", "ACTOR_MAX_UNCHECKPOINTED"} {
+	for _, name := range []string{"ACTOR_SHARDS", "ACTOR_QUEUE", "ACTOR_BATCH", "ACTOR_MAX_PLAYERS", "ACTOR_MAX_RECEIPTS", "ACTOR_BATCH_WINDOW", "ACTOR_FLUSH_INTERVAL", "ACTOR_MAX_UNCHECKPOINTED", "ACTOR_WAL_SEGMENT_BYTES"} {
 		t.Run(name, func(t *testing.T) {
 			t.Setenv(name, "invalid")
 			if _, err := configuration(); err == nil {
@@ -55,6 +55,12 @@ func TestActorProcessHelper(t *testing.T) {
 }
 
 func TestAcknowledgedAssetsSurviveSIGKILL(t *testing.T) {
+	for _, reclaimed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("reclaimed=%v", reclaimed), func(t *testing.T) { testCrashState(t, reclaimed) })
+	}
+}
+
+func testCrashState(t *testing.T, reclaimed bool) {
 	uri := os.Getenv("MONGO_TEST_URI")
 	if uri == "" {
 		t.Skip("set MONGO_TEST_URI for subprocess crash test")
@@ -87,7 +93,10 @@ func TestAcknowledgedAssetsSurviveSIGKILL(t *testing.T) {
 		t.Helper()
 		cmd := exec.Command(executable, "-test.run=^TestActorProcessHelper$")
 		// Override inherited config, including any interactive server's token.
-		values := map[string]string{"ACTOR_PROCESS_TEST": "1", "HTTP_ADDR": addr, "APP_API_TOKEN": "", "MONGO_URI": uri, "MONGO_DATABASE": db, "WAL_DIRECTORY": dir, "ACTOR_SHARDS": "2", "ACTOR_FLUSH_INTERVAL": "1h", "ACTOR_BATCH_WINDOW": "1ms", "ACTOR_MAX_UNCHECKPOINTED": "1000", "ACTOR_MAX_PLAYERS": "100", "ACTOR_MAX_RECEIPTS": "100", "ACTOR_QUEUE": "64", "ACTOR_BATCH": "16"}
+		values := map[string]string{"ACTOR_PROCESS_TEST": "1", "HTTP_ADDR": addr, "APP_API_TOKEN": "", "MONGO_URI": uri, "MONGO_DATABASE": db, "WAL_DIRECTORY": dir, "ACTOR_SHARDS": "2", "ACTOR_FLUSH_INTERVAL": "1h", "ACTOR_BATCH_WINDOW": "1ms", "ACTOR_MAX_UNCHECKPOINTED": "1000", "ACTOR_MAX_PLAYERS": "100", "ACTOR_MAX_RECEIPTS": "100", "ACTOR_QUEUE": "64", "ACTOR_BATCH": "16", "ACTOR_WAL_SEGMENT_BYTES": "1024"}
+		if reclaimed {
+			values["ACTOR_FLUSH_INTERVAL"] = "10ms"
+		}
 		for _, entry := range os.Environ() {
 			name, _, _ := strings.Cut(entry, "=")
 			if _, replaced := values[name]; !replaced {
@@ -163,8 +172,33 @@ func TestAcknowledgedAssetsSurviveSIGKILL(t *testing.T) {
 	request("/players/alice/purchases", poor, 409)
 	request("/players/alice/rewards", reward, 200)
 	count, err := client.Database(db).Collection("actor_snapshots").CountDocuments(context.Background(), map[string]any{})
-	if err != nil || count != 0 {
-		t.Fatalf("expected WAL-only assets before kill: snapshots=%d err=%v", count, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedCoins := float64(70)
+	if !reclaimed && count != 0 {
+		t.Fatalf("expected WAL-only assets before kill: snapshots=%d", count)
+	}
+	if reclaimed {
+		deadline := time.Now().Add(10 * time.Second)
+		removed := false
+		for time.Now().Before(deadline) {
+			stats := request("/debug/stats", "", 200)
+			for _, raw := range stats["shards"].([]any) {
+				if raw.(map[string]any)["wal_reclaimed_segments"].(float64) > 0 {
+					removed = true
+				}
+			}
+			if removed {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		if !removed {
+			t.Fatal("no actual segment deletion before kill")
+		}
+		request("/players/alice/rewards", `{"request_id":"tail","amount":7}`, 200)
+		expectedCoins = 77
 	}
 	if err := child.Process.Kill(); err != nil {
 		t.Fatal(err)
@@ -185,7 +219,13 @@ func TestAcknowledgedAssetsSurviveSIGKILL(t *testing.T) {
 		}
 	}
 	p := request("/players/alice", "", 200)
-	if p["coins"] != float64(70) || p["inventory"].(map[string]any)["sword"] != float64(1) {
+	if p["coins"] != expectedCoins || p["inventory"].(map[string]any)["sword"] != float64(1) {
 		t.Fatalf("assets changed across crash: %v", p)
+	}
+	if reclaimed {
+		r := request("/players/alice/rewards", `{"request_id":"tail","amount":7}`, 200)
+		if r["replayed"] != true {
+			t.Fatal("tail duplicated after reclamation")
+		}
 	}
 }

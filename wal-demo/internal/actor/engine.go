@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Materialist-yuan/GPT/wal-demo/internal/game"
+	"github.com/Materialist-yuan/GPT/wal-demo/internal/segmentwal"
 	"github.com/Materialist-yuan/GPT/wal-demo/internal/wal"
 )
 
@@ -82,10 +83,19 @@ type journal interface {
 }
 
 func New(ctx context.Context, store Store, opts Options) (*Engine, error) {
-	return newEngine(ctx, store, opts, func(path string) (journal, error) { return wal.Open(path) })
+	if opts.WALSegmentBytes == 0 {
+		opts.WALSegmentBytes = DefaultWALSegmentBytes
+	}
+	return newEngine(ctx, store, opts, func(path string) (journal, error) { return segmentwal.Open(path, opts.WALSegmentBytes) })
 }
 
 func newEngine(ctx context.Context, store Store, opts Options, open func(string) (journal, error)) (*Engine, error) {
+	if opts.WALSegmentBytes == 0 {
+		opts.WALSegmentBytes = DefaultWALSegmentBytes
+	}
+	if opts.WALSegmentBytes < 256 {
+		return nil, errors.New("actor WAL segment limit must be at least 256 bytes")
+	}
 	if store == nil || opts.Directory == "" || opts.Shards < 1 || opts.Shards > 256 || opts.QueueCapacity < 1 || opts.BatchSize < 1 || opts.BatchSize > 1024 || opts.BatchWindow < 0 || opts.FlushInterval <= 0 || opts.MaxPlayersPerShard < 1 || opts.MaxReceiptsPerPlayer < 1 || opts.MaxReceiptsPerPlayer > 2000 || opts.MaxUncheckpointed < 1 {
 		return nil, errors.New("invalid actor options")
 	}
@@ -126,6 +136,13 @@ func newEngine(ctx context.Context, store Store, opts Options, open func(string)
 			if err == nil && stat.Size() > 0 {
 				history = true
 			}
+			// The legacy segment may have been safely reclaimed. The durable
+			// manifest remains the lineage evidence even when that file is gone.
+			if _, err := os.Stat(filepath.Join(opts.Directory, fmt.Sprintf("shard-%03d.wal.segments/manifest.json", id))); err == nil {
+				history = true
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return nil, err
+			}
 		}
 		if err := binder.BindJournal(ctx, journalID, history); err != nil {
 			return nil, fmt.Errorf("bind journal: %w", err)
@@ -151,6 +168,14 @@ func newEngine(ctx context.Context, store Store, opts Options, open func(string)
 			}
 			s.states[snap.Player.ID] = cloneSnapshot(snap)
 			s.checkpoint[snap.Player.ID] = snap.Seq
+		}
+
+		if retired, ok := journal.(interface{ Retired() map[string]uint64 }); ok {
+			for player, seq := range retired.Retired() {
+				if player == "" || shardID(player, opts.Shards) != id || seq == 0 || seq > journal.LastID() || s.checkpoint[player] < seq {
+					return nil, fmt.Errorf("missing or stale snapshot for reclaimed player %q at sequence %d", player, seq)
+				}
+			}
 		}
 
 		// A completion is evidence that MongoDB confirmed the corresponding
@@ -229,26 +254,34 @@ func journalManifest(opts Options) (string, error) {
 		Shards    int    `json:"shards"`
 		JournalID string `json:"journal_id"`
 	}
+	var desired layout
 	b, err := os.ReadFile(path)
 	if err == nil {
 		var found layout
-		if json.Unmarshal(b, &found) != nil || found.Schema != 2 || found.Shards != opts.Shards || len(found.JournalID) != 32 {
+		if json.Unmarshal(b, &found) != nil || (found.Schema != 2 && found.Schema != 3) || found.Shards != opts.Shards || len(found.JournalID) != 32 {
 			return "", errors.New("actor journal layout changed or lacks identity; explicit migration required")
 		}
 		decoded, err := hex.DecodeString(found.JournalID)
 		if err != nil || len(decoded) != 16 {
 			return "", errors.New("invalid journal identity")
 		}
-		return found.JournalID, nil
+		if found.Schema == 3 {
+			return found.JournalID, nil
+		}
+		// Upgrade the format fence before opening segmented logs. Old binaries
+		// reject schema 3 rather than ignoring sidecars and losing new events.
+		desired = found
+		desired.Schema = 3
+	} else {
+		if !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+		var random [16]byte
+		if _, err := rand.Read(random[:]); err != nil {
+			return "", err
+		}
+		desired = layout{Schema: 3, Shards: opts.Shards, JournalID: hex.EncodeToString(random[:])}
 	}
-	if !errors.Is(err, os.ErrNotExist) {
-		return "", err
-	}
-	var random [16]byte
-	if _, err := rand.Read(random[:]); err != nil {
-		return "", err
-	}
-	desired := layout{Schema: 2, Shards: opts.Shards, JournalID: hex.EncodeToString(random[:])}
 	b, _ = json.Marshal(desired)
 	f, err := os.CreateTemp(opts.Directory, "layout-*.tmp")
 	if err != nil {
@@ -355,6 +388,13 @@ func (e *Engine) Stats() Stats {
 		s.statsMu.Lock()
 		copy := s.stats
 		s.statsMu.Unlock()
+		// Collect filesystem statistics only on explicit diagnostics/health
+		// reads, never on the asset append/publish hot path.
+		if journal, ok := s.log.(interface{ Stats() segmentwal.Stats }); ok {
+			st := journal.Stats()
+			copy.WALSegments, copy.WALBytes = st.Segments, st.Bytes
+			copy.WALReclaimedSegments, copy.WALReclaimedBytes = st.ReclaimedSegments, st.ReclaimedBytes
+		}
 		copy.Queue = len(s.queue)
 		if copy.PendingSinceUnixMilli > 0 {
 			copy.PendingAgeMillis = time.Now().UnixMilli() - copy.PendingSinceUnixMilli
@@ -556,6 +596,24 @@ func (s *shard) ack(saved []Snapshot) error {
 	}
 	for _, id := range ids {
 		delete(s.pending, id)
+	}
+	if compactor, ok := s.log.(interface {
+		Compact(map[string]uint64, func(wal.Entry) (string, error)) error
+	}); ok {
+		if err := compactor.Compact(s.checkpoint, func(entry wal.Entry) (string, error) {
+			var ev event
+			if err := json.Unmarshal(entry.Payload, &ev); err != nil {
+				return "", err
+			}
+			if ev.Schema != 1 || ev.Player.ID == "" || shardID(ev.Player.ID, s.engine.opts.Shards) != s.id {
+				return "", errors.New("invalid actor event during reclamation")
+			}
+			return ev.Player.ID, nil
+		}); err != nil {
+			s.fault = fmt.Errorf("WAL reclamation uncertain; restart required: %w", err)
+			s.publish()
+			return err
+		}
 	}
 	s.publish()
 	return nil

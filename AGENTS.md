@@ -12,7 +12,8 @@
 
 - `wal-demo/cmd/server/`：配置、启动时恢复、HTTP 服务和退出流程。
 - `wal-demo/internal/game/`：资产规则、MongoDB 存储、幂等与写入编排。
-- `wal-demo/internal/wal/`：日志格式、校验、同步落盘、文件锁和恢复。
+- `wal-demo/internal/wal/`：单文件日志格式、校验、同步落盘、文件锁和恢复。
+- `wal-demo/internal/segmentwal/`：Actor 分段日志、全局序号、回收清单与故障恢复。
 - `wal-demo/internal/actor/`：分片单写者、确定性结果日志、后台快照和恢复。
 - `wal-demo/cmd/actor-server/`：Actor 版本入口；`cmd/loadgen/`：有界并发压测与余额校验。
 - `wal-demo/docs/`：调研来源、架构指南与验证记录。
@@ -77,7 +78,8 @@ MONGO_TEST_URI=mongodb://127.0.0.1:27017 go test -race -count=1 ./...
 ## 数据和提交
 
 - 保留 `wal-demo/data/` 和 Docker 卷 `game-assets-mongo-data`，不要为排查问题删除真实资产数据。测试使用独立测试数据库并清理自己的数据。
-- WAL 只恢复未完成操作；已完成记录不能自动恢复丢失的 MongoDB。WAL 与回执当前没有清理机制，需考虑磁盘增长和 MongoDB 的 16 MiB 单文档限制。
+- WAL 只恢复未完成操作，不能代替 MongoDB 备份。Actor 仅在可靠检查点覆盖后回收封存段连续前缀，必须先持久化保留集合和每玩家退休水位，再删除文件并同步目录；活动段与 pending 段不能删除。不得绕过回收后快照覆盖检查。同步基线仍不回收。
+- 回执仍没有清理机制，需考虑 MongoDB 的 16 MiB 单文档限制。回收日志后不能随意接入旧数据库备份；分段格式启用后不支持直接降级。
 - 不提交 `bin/`、`data/`、`.env`、凭据、缓存和运行日志；`.env.example` 只含非敏感示例。
 - 各 Demo 使用各自工具链和验证方式。Go 代码使用 `gofmt`，Go 依赖变化同步更新模块内的 `go.mod` 和 `go.sum`。接口或运行方式改变时同步更新对应文档。
 - 提交前检查 `git status` 和差异，保留用户已有修改。推送按用户授权执行，不强推、不覆盖远端历史。

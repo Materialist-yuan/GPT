@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -391,5 +392,120 @@ func TestRecoveryRefusesMissingCompletedPlayerSnapshot(t *testing.T) {
 	if restarted, err := New(context.Background(), store, opts); err == nil {
 		restarted.Close(context.Background())
 		t.Fatal("lost completed player snapshot accepted silently")
+	}
+}
+
+func TestSegmentReclamationWaitsForCheckpointAndPreservesRecovery(t *testing.T) {
+	store := newMemoryStore()
+	store.fail = true
+	opts := testOptions(t.TempDir())
+	opts.WALSegmentBytes = 256
+	opts.FlushInterval = 5 * time.Millisecond
+	engine, err := New(context.Background(), store, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = engine.Close(context.Background()) })
+	runOp(t, engine, createOp("alice"))
+	runOp(t, engine, createOp("bob"))
+	reward := game.Operation{PlayerID: "alice", RequestID: "reward", Kind: "reward", Amount: 7}
+	runOp(t, engine, reward)
+	runOp(t, engine, game.Operation{PlayerID: "bob", RequestID: "reward", Kind: "reward", Amount: 9})
+	deadline := time.Now().Add(2 * time.Second)
+	var before ShardStats
+	for time.Now().Before(deadline) {
+		before = engine.Stats().Shards[0]
+		if before.CheckpointErrors > 0 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if before.CheckpointErrors == 0 || before.Pending != 4 || before.WALSegments < 4 || before.WALReclaimedSegments != 0 {
+		t.Fatalf("failed MongoDB checkpoint reclaimed pending data: %+v", before)
+	}
+	store.mu.Lock()
+	store.fail = false
+	store.mu.Unlock()
+	var after ShardStats
+	deadline = time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		after = engine.Stats().Shards[0]
+		if after.Pending == 0 && after.WALReclaimedSegments >= 3 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if after.Pending != 0 || after.WALSegments != 1 || after.WALReclaimedSegments < 3 || after.WALReclaimedBytes == 0 || after.WALBytes >= before.WALBytes {
+		t.Fatalf("checkpoint did not release sealed segments: before=%+v after=%+v", before, after)
+	}
+	last := engine.shards[0].log.LastID()
+	if err := engine.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	restarted := newTestEngine(t, store, opts)
+	if r := runOp(t, restarted, reward); !r.Replayed || r.Player.Coins != 107 {
+		t.Fatalf("lost receipt across reclamation: %+v", r)
+	}
+	runOp(t, restarted, game.Operation{PlayerID: "alice", RequestID: "next", Kind: "reward", Amount: 1})
+	if got := restarted.shards[0].log.LastID(); got != last+1 {
+		t.Fatalf("sequence reset after reclaim: got=%d want=%d", got, last+1)
+	}
+	player, err := restarted.Get(context.Background(), "bob")
+	if err != nil || player.Coins != 109 {
+		t.Fatalf("other player lost after reclaim: %+v %v", player, err)
+	}
+}
+
+func TestReclaimedHistoryRejectsMissingPlayerSnapshot(t *testing.T) {
+	store := newMemoryStore()
+	opts := testOptions(t.TempDir())
+	opts.WALSegmentBytes = 256
+	engine, err := New(context.Background(), store, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runOp(t, engine, createOp("alice"))
+	runOp(t, engine, game.Operation{PlayerID: "alice", RequestID: "reward", Kind: "reward", Amount: 7})
+	runOp(t, engine, createOp("bob"))
+	if err := engine.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	store.mu.Lock()
+	delete(store.snapshots[0], "alice")
+	store.mu.Unlock()
+	if restarted, err := New(context.Background(), store, opts); err == nil {
+		_ = restarted.Close(context.Background())
+		t.Fatal("missing snapshot accepted after its original events were reclaimed")
+	}
+}
+
+func TestSegmentedLayoutUpgradePreservesJournalIdentity(t *testing.T) {
+	dir := t.TempDir()
+	o := testOptions(dir)
+	id := "00112233445566778899aabbccddeeff"
+	old := []byte(`{"schema":2,"shards":1,"journal_id":"` + id + `"}`)
+	if err := os.WriteFile(filepath.Join(dir, "layout.json"), old, 0600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := journalManifest(o)
+	if err != nil || got != id {
+		t.Fatalf("upgrade identity=%q err=%v", got, err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "layout.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var upgraded struct {
+		Schema    int    `json:"schema"`
+		JournalID string `json:"journal_id"`
+	}
+	if err := json.Unmarshal(data, &upgraded); err != nil {
+		t.Fatal(err)
+	}
+	if upgraded.Schema != 3 || upgraded.JournalID != id {
+		t.Fatalf("missing downgrade fence: %+v", upgraded)
+	}
+	if again, err := journalManifest(o); err != nil || again != id {
+		t.Fatalf("upgrade not repeatable: %q %v", again, err)
 	}
 }

@@ -1,0 +1,199 @@
+{
+  "segment_bytes": 16384,
+  "workload": {
+    "players": 100,
+    "requested": 2000,
+    "concurrency": 32,
+    "create": {
+      "attempted": 100,
+      "success": 100,
+      "network_errors": 0,
+      "protocol_errors": 0,
+      "http_statuses": {
+        "201": 100
+      },
+      "elapsed_seconds": 0.025731209,
+      "attempts_per_second": 3886.331186381487,
+      "successful_ops_per_second": 3886.331186381487,
+      "p50_ms": 5.104127,
+      "p95_ms": 10.154752,
+      "p99_ms": 10.690906
+    },
+    "rewards": {
+      "attempted": 2000,
+      "success": 2000,
+      "network_errors": 0,
+      "protocol_errors": 0,
+      "http_statuses": {
+        "200": 2000
+      },
+      "elapsed_seconds": 0.279332803,
+      "attempts_per_second": 7159.918128197783,
+      "successful_ops_per_second": 7159.918128197783,
+      "p50_ms": 3.495962,
+      "p95_ms": 9.243859,
+      "p99_ms": 13.476295
+    },
+    "validation_reads": {
+      "attempted": 100,
+      "success": 100,
+      "network_errors": 0,
+      "protocol_errors": 0,
+      "http_statuses": {
+        "200": 100
+      },
+      "elapsed_seconds": 0.007581577,
+      "attempts_per_second": 13189.86801822365,
+      "successful_ops_per_second": 13189.86801822365,
+      "p50_ms": 1.802182,
+      "p95_ms": 1.977151,
+      "p99_ms": 2.042925
+    },
+    "balance_mismatches": 0,
+    "validation_passed": true,
+    "passed": true,
+    "note": "Closed-loop single-host HTTP workload. Latency includes failed attempts. No automatic retries; timeouts may have committed. Not a cluster capacity claim."
+  },
+  "before_checkpoint": {
+    "shards": [
+      {
+        "id": 0,
+        "queue": 0,
+        "players": 25,
+        "pending": 525,
+        "pending_since_unix_milli": 1793628690469,
+        "pending_age_millis": 307,
+        "wal_records": 525,
+        "wal_batches": 81,
+        "wal_segments": 14,
+        "wal_bytes": 249589,
+        "wal_reclaimed_segments": 0,
+        "wal_reclaimed_bytes": 0,
+        "checkpoints": 0,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 1,
+        "queue": 0,
+        "players": 25,
+        "pending": 525,
+        "pending_since_unix_milli": 1793628690468,
+        "pending_age_millis": 308,
+        "wal_records": 525,
+        "wal_batches": 78,
+        "wal_segments": 14,
+        "wal_bytes": 249615,
+        "wal_reclaimed_segments": 0,
+        "wal_reclaimed_bytes": 0,
+        "checkpoints": 0,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 2,
+        "queue": 0,
+        "players": 25,
+        "pending": 525,
+        "pending_since_unix_milli": 1793628690469,
+        "pending_age_millis": 307,
+        "wal_records": 525,
+        "wal_batches": 90,
+        "wal_segments": 14,
+        "wal_bytes": 249604,
+        "wal_reclaimed_segments": 0,
+        "wal_reclaimed_bytes": 0,
+        "checkpoints": 0,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 3,
+        "queue": 0,
+        "players": 25,
+        "pending": 525,
+        "pending_since_unix_milli": 1793628690469,
+        "pending_age_millis": 307,
+        "wal_records": 525,
+        "wal_batches": 83,
+        "wal_segments": 14,
+        "wal_bytes": 249595,
+        "wal_reclaimed_segments": 0,
+        "wal_reclaimed_bytes": 0,
+        "checkpoints": 0,
+        "checkpoint_errors": 0
+      }
+    ],
+    "accepted": 2200,
+    "overloaded": 0
+  },
+  "after_checkpoint": {
+    "shards": [
+      {
+        "id": 0,
+        "queue": 0,
+        "players": 25,
+        "pending": 0,
+        "pending_age_millis": 0,
+        "last_checkpoint_unix_milli": 1793628692427,
+        "wal_records": 525,
+        "wal_batches": 81,
+        "wal_segments": 1,
+        "wal_bytes": 11207,
+        "wal_reclaimed_segments": 13,
+        "wal_reclaimed_bytes": 268664,
+        "checkpoints": 1,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 1,
+        "queue": 0,
+        "players": 25,
+        "pending": 0,
+        "pending_age_millis": 0,
+        "last_checkpoint_unix_milli": 1793628692430,
+        "wal_records": 525,
+        "wal_batches": 78,
+        "wal_segments": 1,
+        "wal_bytes": 16552,
+        "wal_reclaimed_segments": 13,
+        "wal_reclaimed_bytes": 263345,
+        "checkpoints": 1,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 2,
+        "queue": 0,
+        "players": 25,
+        "pending": 0,
+        "pending_age_millis": 0,
+        "last_checkpoint_unix_milli": 1793628692427,
+        "wal_records": 525,
+        "wal_batches": 90,
+        "wal_segments": 1,
+        "wal_bytes": 13345,
+        "wal_reclaimed_segments": 13,
+        "wal_reclaimed_bytes": 266541,
+        "checkpoints": 1,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 3,
+        "queue": 0,
+        "players": 25,
+        "pending": 0,
+        "pending_age_millis": 0,
+        "last_checkpoint_unix_milli": 1793628692429,
+        "wal_records": 525,
+        "wal_batches": 83,
+        "wal_segments": 1,
+        "wal_bytes": 11204,
+        "wal_reclaimed_segments": 13,
+        "wal_reclaimed_bytes": 268673,
+        "checkpoints": 1,
+        "checkpoint_errors": 0
+      }
+    ],
+    "accepted": 2200,
+    "overloaded": 0
+  },
+  "retained_directory": "/workspace/GPT/wal-demo/data/gc_validation_1793628690340489550",
+  "note": "Real HTTP/MongoDB run; stats retained WAL payload/marker bytes only, excludes manifest/metadata and filesystem space accounting."
+}

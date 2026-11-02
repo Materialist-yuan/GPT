@@ -84,6 +84,7 @@ func run() error {
 				fault = 1
 			}
 			_, _ = fmt.Fprintf(w, "demo_actor_queue{shard=\"%d\"} %d\ndemo_actor_pending{shard=\"%d\"} %d\ndemo_actor_pending_age_seconds{shard=\"%d\"} %.3f\ndemo_actor_wal_records_total{shard=\"%d\"} %d\ndemo_actor_wal_batches_total{shard=\"%d\"} %d\ndemo_actor_checkpoint_errors_total{shard=\"%d\"} %d\ndemo_actor_checkpoints_total{shard=\"%d\"} %d\ndemo_actor_fault{shard=\"%d\"} %d\n", s.ID, s.Queue, s.ID, s.Pending, s.ID, float64(s.PendingAgeMillis)/1000, s.ID, s.WALRecords, s.ID, s.WALBatches, s.ID, s.CheckpointErrors, s.ID, s.Checkpoints, s.ID, fault)
+			_, _ = fmt.Fprintf(w, "demo_actor_wal_segments{shard=\"%d\"} %d\ndemo_actor_wal_bytes{shard=\"%d\"} %d\ndemo_actor_wal_reclaimed_segments_total{shard=\"%d\"} %d\ndemo_actor_wal_reclaimed_bytes_total{shard=\"%d\"} %d\n", s.ID, s.WALSegments, s.ID, s.WALBytes, s.ID, s.WALReclaimedSegments, s.ID, s.WALReclaimedBytes)
 		}
 	})
 	mux.Handle("/", api)
@@ -195,6 +196,13 @@ func configuration() (actor.Options, error) {
 			return o, errors.New("invalid ACTOR_MAX_UNCHECKPOINTED")
 		}
 		o.MaxUncheckpointed = n
+	}
+	if s := os.Getenv("ACTOR_WAL_SEGMENT_BYTES"); s != "" {
+		n, err := strconv.ParseInt(s, 10, 64)
+		if err != nil || n < 1024 || n > 1<<30 {
+			return o, errors.New("invalid ACTOR_WAL_SEGMENT_BYTES (expected 1024..1073741824)")
+		}
+		o.WALSegmentBytes = n
 	}
 	return o, nil
 }

@@ -31,15 +31,19 @@ type Store interface {
 	Save(context.Context, int, []Snapshot) error
 	Ping(context.Context) error
 }
+
+const DefaultWALSegmentBytes int64 = 64 << 20
+
 type Options struct {
 	Directory                                                                  string
 	Shards, QueueCapacity, BatchSize, MaxPlayersPerShard, MaxReceiptsPerPlayer int
 	BatchWindow, FlushInterval                                                 time.Duration
 	MaxUncheckpointed                                                          uint64
+	WALSegmentBytes                                                            int64
 }
 
 func DefaultOptions(dir string) Options {
-	return Options{Directory: dir, Shards: 4, QueueCapacity: 256, BatchSize: 64, MaxPlayersPerShard: 10000, MaxReceiptsPerPlayer: 1000, BatchWindow: time.Millisecond, FlushInterval: time.Second, MaxUncheckpointed: 10000}
+	return Options{Directory: dir, Shards: 4, QueueCapacity: 256, BatchSize: 64, MaxPlayersPerShard: 10000, MaxReceiptsPerPlayer: 1000, BatchWindow: time.Millisecond, FlushInterval: time.Second, MaxUncheckpointed: 10000, WALSegmentBytes: DefaultWALSegmentBytes}
 }
 
 type ShardStats struct {
@@ -52,6 +56,10 @@ type ShardStats struct {
 	LastCheckpointUnixMilli int64  `json:"last_checkpoint_unix_milli,omitempty"`
 	WALRecords              uint64 `json:"wal_records"`
 	WALBatches              uint64 `json:"wal_batches"`
+	WALSegments             int    `json:"wal_segments"`
+	WALBytes                int64  `json:"wal_bytes"`
+	WALReclaimedSegments    uint64 `json:"wal_reclaimed_segments"`
+	WALReclaimedBytes       uint64 `json:"wal_reclaimed_bytes"`
 	Checkpoints             uint64 `json:"checkpoints"`
 	CheckpointErrors        uint64 `json:"checkpoint_errors"`
 	LastCheckpointError     string `json:"last_checkpoint_error,omitempty"`
