@@ -11,6 +11,7 @@
 - [调研依据](docs/research.md)：实际核对 Orleans、Nakama、Redis 官方源码，解释取舍。
 - [Actor 学习与运行指南](docs/actor-guide.md)：启动、背压、恢复协议、指标、故障演练与能力边界。
 - [验证及性能测量记录](docs/validation.md)：真实数据库测试、SIGKILL 恢复和单机对照数据。
+- [WAL / 无 WAL 基准与资源](docs/wal-benchmark.md)：相同 Actor 路径的延迟成本、批量同步、CPU 与 RSS。
 
 ```bash
 # 在 wal-demo 目录，准备环境后运行新版本（默认端口 8081）

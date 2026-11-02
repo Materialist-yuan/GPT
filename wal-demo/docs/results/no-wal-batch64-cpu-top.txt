@@ -1,0 +1,220 @@
+File: actor-bench.test
+Build ID: 2ef9a03fa33a09e8590bf9fb9d3f4b4f19d0fc9b
+Type: cpu
+Time: 2026-11-02 12:31:24 UTC
+Duration: 2.11s, Total samples = 920ms (43.51%)
+Showing nodes accounting for 920ms, 100% of 920ms total
+      flat  flat%   sum%        cum   cum%
+      40ms  4.35%  4.35%       40ms  4.35%  internal/runtime/gc/scan.scanSpanPackedAVX512
+      40ms  4.35%  8.70%       40ms  4.35%  runtime.futex
+      40ms  4.35% 13.04%       40ms  4.35%  runtime.spanClass.sizeclass (inline)
+      30ms  3.26% 16.30%       80ms  8.70%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.clonePlayer (inline)
+      30ms  3.26% 19.57%       30ms  3.26%  internal/runtime/maps.memHashAES
+      30ms  3.26% 22.83%       80ms  8.70%  runtime.scanObject
+      30ms  3.26% 26.09%       70ms  7.61%  runtime.tryDeferToSpanScan
+      20ms  2.17% 28.26%       70ms  7.61%  encoding/json/v2.makeStructArshaler.func2
+      20ms  2.17% 30.43%      120ms 13.04%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneReceipt (inline)
+      20ms  2.17% 32.61%      110ms 11.96%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneResult (inline)
+      20ms  2.17% 34.78%      340ms 36.96%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneSnapshot
+      20ms  2.17% 36.96%       20ms  2.17%  internal/chacha8rand.block
+      20ms  2.17% 39.13%       20ms  2.17%  internal/runtime/syscall/linux.Syscall6
+      20ms  2.17% 41.30%       20ms  2.17%  runtime.(*timer).unlock (inline)
+      20ms  2.17% 43.48%       80ms  8.70%  runtime.findRunnable
+      20ms  2.17% 45.65%       20ms  2.17%  runtime.memclrNoHeapPointers
+      20ms  2.17% 47.83%       20ms  2.17%  runtime.procyieldAsm
+      20ms  2.17% 50.00%       20ms  2.17%  runtime.tgkill
+      10ms  1.09% 51.09%       10ms  1.09%  encoding/json/internal/jsonwire.ConsumeWhitespace (inline)
+      10ms  1.09% 52.17%       10ms  1.09%  encoding/json/jsontext.stateEntry.isObject (inline)
+      10ms  1.09% 53.26%       10ms  1.09%  fmt.newPrinter
+      10ms  1.09% 54.35%       20ms  2.17%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*Engine).Execute
+      10ms  1.09% 55.43%       50ms  5.43%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneInventory (inline)
+      10ms  1.09% 56.52%       10ms  1.09%  internal/runtime/atomic.(*Uint32).CompareAndSwap (inline)
+      10ms  1.09% 57.61%       10ms  1.09%  internal/runtime/atomic.(*Uint64).Add (inline)
+      10ms  1.09% 58.70%       10ms  1.09%  internal/runtime/maps.(*Iter).Next
+      10ms  1.09% 59.78%       10ms  1.09%  internal/runtime/maps.(*groupReference).elem (inline)
+      10ms  1.09% 60.87%       10ms  1.09%  internal/runtime/maps.(*groupReference).key (inline)
+      10ms  1.09% 61.96%       40ms  4.35%  internal/runtime/maps.(*table).uncheckedPutSlot
+      10ms  1.09% 63.04%       10ms  1.09%  internal/runtime/maps.ctrlGroup.matchEmptyOrDeleted (inline)
+      10ms  1.09% 64.13%       10ms  1.09%  internal/runtime/maps.ctrlGroup.matchH2 (inline)
+      10ms  1.09% 65.22%       50ms  5.43%  internal/runtime/maps.newTable
+      10ms  1.09% 66.30%       30ms  3.26%  internal/runtime/maps.rand
+      10ms  1.09% 67.39%       10ms  1.09%  internal/runtime/maps.typedmemmove
+      10ms  1.09% 68.48%       10ms  1.09%  regexp.(*Regexp).doOnePass
+      10ms  1.09% 69.57%       10ms  1.09%  runtime.(*fixalloc).alloc
+      10ms  1.09% 70.65%       10ms  1.09%  runtime.(*lfstack).pop
+      10ms  1.09% 71.74%       10ms  1.09%  runtime.(*mLockProfile).store (inline)
+      10ms  1.09% 72.83%       30ms  3.26%  runtime.(*mcache).nextFree
+      10ms  1.09% 73.91%       10ms  1.09%  runtime.(*timers).run
+      10ms  1.09% 75.00%       10ms  1.09%  runtime.acquireSudog
+      10ms  1.09% 76.09%       10ms  1.09%  runtime.acquirem (inline)
+      10ms  1.09% 77.17%       30ms  3.26%  runtime.bulkBarrierPreWrite
+      10ms  1.09% 78.26%       10ms  1.09%  runtime.castogscanstatus
+      10ms  1.09% 79.35%       10ms  1.09%  runtime.findObject
+      10ms  1.09% 80.43%       10ms  1.09%  runtime.getGCMask (inline)
+      10ms  1.09% 81.52%       10ms  1.09%  runtime.gopark
+      10ms  1.09% 82.61%       30ms  3.26%  runtime.goready (inline)
+      10ms  1.09% 83.70%       20ms  2.17%  runtime.growslice
+      10ms  1.09% 84.78%       10ms  1.09%  runtime.heapSetTypeSmallHeader (inline)
+      10ms  1.09% 85.87%       30ms  3.26%  runtime.lock2
+      10ms  1.09% 86.96%       30ms  3.26%  runtime.mallocgcSmallScanNoHeaderSC5
+      10ms  1.09% 88.04%       10ms  1.09%  runtime.mapaccess2_faststr
+      10ms  1.09% 89.13%      150ms 16.30%  runtime.mapassign_faststr
+      10ms  1.09% 90.22%       10ms  1.09%  runtime.memmove
+      10ms  1.09% 91.30%       20ms  2.17%  runtime.notesleep
+      10ms  1.09% 92.39%       20ms  2.17%  runtime.scanObjectsSmall
+      10ms  1.09% 93.48%       40ms  4.35%  runtime.send
+      10ms  1.09% 94.57%       10ms  1.09%  runtime.typedmemclr
+      10ms  1.09% 95.65%       10ms  1.09%  runtime.write1
+      10ms  1.09% 96.74%       10ms  1.09%  slices.Grow[go.shape.[]uint8,go.shape.uint8] (inline)
+      10ms  1.09% 97.83%       10ms  1.09%  sync.(*poolDequeue).popHead
+      10ms  1.09% 98.91%       10ms  1.09%  sync.runtime_procUnpin
+      10ms  1.09%   100%       10ms  1.09%  sync/atomic.(*Bool).Load (inline)
+         0     0%   100%       20ms  2.17%  _.goready.func1
+         0     0%   100%       10ms  1.09%  crypto/internal/fips140/sha256.(*Digest).Sum
+         0     0%   100%       10ms  1.09%  crypto/internal/fips140/sha256.(*Digest).Write
+         0     0%   100%       10ms  1.09%  crypto/internal/fips140/sha256.(*Digest).checkSum
+         0     0%   100%       10ms  1.09%  crypto/sha256.Sum256
+         0     0%   100%       80ms  8.70%  encoding/json.Marshal (inline)
+         0     0%   100%       10ms  1.09%  encoding/json/internal/jsonwire.AppendQuote
+         0     0%   100%       20ms  2.17%  encoding/json/jsontext.(*Encoder).WriteValue (inline)
+         0     0%   100%       20ms  2.17%  encoding/json/jsontext.(*encoderState).WriteValue
+         0     0%   100%       10ms  1.09%  encoding/json/jsontext.(*encoderState).reformatObject
+         0     0%   100%       10ms  1.09%  encoding/json/jsontext.(*encoderState).reformatValue
+         0     0%   100%       10ms  1.09%  encoding/json/jsontext.(*stateMachine).popObject (inline)
+         0     0%   100%       10ms  1.09%  encoding/json/jsontext.export.GetBufferedEncoder (inline)
+         0     0%   100%       10ms  1.09%  encoding/json/jsontext.export.PutBufferedEncoder
+         0     0%   100%       10ms  1.09%  encoding/json/jsontext.getBufferedEncoder
+         0     0%   100%       10ms  1.09%  encoding/json/jsontext.putBufferedEncoder
+         0     0%   100%       80ms  8.70%  encoding/json/v2.Marshal
+         0     0%   100%       50ms  5.43%  encoding/json/v2.makeMethodArshaler.func3
+         0     0%   100%       10ms  1.09%  encoding/json/v2.makeStringArshaler.func1
+         0     0%   100%       70ms  7.61%  encoding/json/v2.marshalEncode
+         0     0%   100%       40ms  4.35%  fmt.Sprintf
+         0     0%   100%       10ms  1.09%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*memoryStore).Save
+         0     0%   100%      490ms 53.26%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).batch
+         0     0%   100%       30ms  3.26%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).dirty
+         0     0%   100%       10ms  1.09%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).flushLoop
+         0     0%   100%      590ms 64.13%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).run
+         0     0%   100%       10ms  1.09%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.BenchmarkActorDurability.func1
+         0     0%   100%       50ms  5.43%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.BenchmarkActorDurability.func1.3
+         0     0%   100%       30ms  3.26%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.Receipt.MarshalJSON
+         0     0%   100%       10ms  1.09%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.hash
+         0     0%   100%       10ms  1.09%  github.com/Materialist-yuan/GPT/wal-demo/internal/game.Validate
+         0     0%   100%       20ms  2.17%  internal/chacha8rand.(*State).Refill
+         0     0%   100%       40ms  4.35%  internal/runtime/gc/scan.ScanSpanPacked (inline)
+         0     0%   100%       40ms  4.35%  internal/runtime/gc/scan.ScanSpanPackedAVX512
+         0     0%   100%       10ms  1.09%  internal/runtime/maps.(*Map).growToTable
+         0     0%   100%       90ms  9.78%  internal/runtime/maps.(*table).grow
+         0     0%   100%       90ms  9.78%  internal/runtime/maps.(*table).rehash
+         0     0%   100%       40ms  4.35%  internal/runtime/maps.(*table).reset
+         0     0%   100%       40ms  4.35%  internal/runtime/maps.NewEmptyMap (inline)
+         0     0%   100%       40ms  4.35%  internal/runtime/maps.newGroups (inline)
+         0     0%   100%       40ms  4.35%  internal/runtime/maps.newarray
+         0     0%   100%       20ms  2.17%  internal/runtime/syscall/linux.EpollWait
+         0     0%   100%       10ms  1.09%  regexp.(*Regexp).MatchString (inline)
+         0     0%   100%       10ms  1.09%  regexp.(*Regexp).doMatch (inline)
+         0     0%   100%       10ms  1.09%  regexp.(*Regexp).find
+         0     0%   100%       10ms  1.09%  runtime.(*activeSweep).end
+         0     0%   100%       10ms  1.09%  runtime.(*gcControllerState).update
+         0     0%   100%       20ms  2.17%  runtime.(*mcache).refill
+         0     0%   100%       10ms  1.09%  runtime.(*mcentral).cacheSpan
+         0     0%   100%       10ms  1.09%  runtime.(*mcentral).grow
+         0     0%   100%       10ms  1.09%  runtime.(*mheap).alloc
+         0     0%   100%       10ms  1.09%  runtime.(*mheap).alloc.func1
+         0     0%   100%       10ms  1.09%  runtime.(*mheap).allocMSpanLocked
+         0     0%   100%       10ms  1.09%  runtime.(*mheap).allocSpan
+         0     0%   100%       10ms  1.09%  runtime.(*mheap).freeSpan (inline)
+         0     0%   100%       10ms  1.09%  runtime.(*mheap).freeSpan.func1
+         0     0%   100%       10ms  1.09%  runtime.(*spanSet).push
+         0     0%   100%       10ms  1.09%  runtime.(*spanSetBlockAlloc).alloc
+         0     0%   100%       20ms  2.17%  runtime.(*sweepLocked).sweep
+         0     0%   100%       10ms  1.09%  runtime.(*timer).maybeAdd
+         0     0%   100%       10ms  1.09%  runtime.(*timer).modify
+         0     0%   100%       10ms  1.09%  runtime.(*timers).check
+         0     0%   100%       20ms  2.17%  runtime.(*wbBuf).get2 (inline)
+         0     0%   100%       30ms  3.26%  runtime.bgsweep
+         0     0%   100%       10ms  1.09%  runtime.blockTimerChan
+         0     0%   100%       50ms  5.43%  runtime.chansend
+         0     0%   100%       50ms  5.43%  runtime.chansend1
+         0     0%   100%       10ms  1.09%  runtime.convT
+         0     0%   100%       10ms  1.09%  runtime.deductAssistCredit
+         0     0%   100%       10ms  1.09%  runtime.futexsleep
+         0     0%   100%       30ms  3.26%  runtime.futexwakeup
+         0     0%   100%       50ms  5.43%  runtime.gcAssistAlloc
+         0     0%   100%       50ms  5.43%  runtime.gcAssistAlloc.func2
+         0     0%   100%       50ms  5.43%  runtime.gcAssistAlloc1
+         0     0%   100%      130ms 14.13%  runtime.gcBgMarkWorker
+         0     0%   100%      120ms 13.04%  runtime.gcBgMarkWorker.func2
+         0     0%   100%      120ms 13.04%  runtime.gcDrain
+         0     0%   100%       60ms  6.52%  runtime.gcDrainMarkWorkerDedicated (inline)
+         0     0%   100%       60ms  6.52%  runtime.gcDrainMarkWorkerIdle (inline)
+         0     0%   100%       50ms  5.43%  runtime.gcDrainN
+         0     0%   100%       10ms  1.09%  runtime.gcMarkDone
+         0     0%   100%       10ms  1.09%  runtime.gcMarkDone.func2
+         0     0%   100%       10ms  1.09%  runtime.gcstopm
+         0     0%   100%       20ms  2.17%  runtime.gopreempt_m (inline)
+         0     0%   100%       20ms  2.17%  runtime.goschedImpl
+         0     0%   100%       30ms  3.26%  runtime.lock (inline)
+         0     0%   100%       30ms  3.26%  runtime.lockWithRank (inline)
+         0     0%   100%       20ms  2.17%  runtime.mPark (inline)
+         0     0%   100%       40ms  4.35%  runtime.makemap_small
+         0     0%   100%       10ms  1.09%  runtime.makeslice
+         0     0%   100%      110ms 11.96%  runtime.mallocgc
+         0     0%   100%       40ms  4.35%  runtime.mallocgcSmallScanHeader
+         0     0%   100%       20ms  2.17%  runtime.mallocgcSmallScanNoHeader
+         0     0%   100%       10ms  1.09%  runtime.mallocgcSmallScanSlowPath
+         0     0%   100%       30ms  3.26%  runtime.mallocgcTinySC2
+         0     0%   100%       30ms  3.26%  runtime.mallocgcTinySlowPath
+         0     0%   100%       10ms  1.09%  runtime.mapIterStart
+         0     0%   100%       10ms  1.09%  runtime.mapaccess1_faststr
+         0     0%   100%       20ms  2.17%  runtime.markroot
+         0     0%   100%       20ms  2.17%  runtime.markroot.func1
+         0     0%   100%       80ms  8.70%  runtime.mcall
+         0     0%   100%       20ms  2.17%  runtime.morestack
+         0     0%   100%       20ms  2.17%  runtime.netpoll
+         0     0%   100%       10ms  1.09%  runtime.netpollBreak
+         0     0%   100%       40ms  4.35%  runtime.newarray
+         0     0%   100%       10ms  1.09%  runtime.newobject
+         0     0%   100%       20ms  2.17%  runtime.newstack
+         0     0%   100%       30ms  3.26%  runtime.notewakeup
+         0     0%   100%       80ms  8.70%  runtime.park_m
+         0     0%   100%       20ms  2.17%  runtime.preemptM (inline)
+         0     0%   100%       10ms  1.09%  runtime.preemptall
+         0     0%   100%       10ms  1.09%  runtime.preemptone
+         0     0%   100%       20ms  2.17%  runtime.procyield (inline)
+         0     0%   100%       20ms  2.17%  runtime.rand
+         0     0%   100%       20ms  2.17%  runtime.ready
+         0     0%   100%       10ms  1.09%  runtime.resetspinning
+         0     0%   100%       70ms  7.61%  runtime.scanSpan
+         0     0%   100%       90ms  9.78%  runtime.schedule
+         0     0%   100%       50ms  5.43%  runtime.selectgo
+         0     0%   100%       20ms  2.17%  runtime.signalM
+         0     0%   100%       30ms  3.26%  runtime.slicebytetostring
+         0     0%   100%       30ms  3.26%  runtime.startm
+         0     0%   100%       10ms  1.09%  runtime.stealWork
+         0     0%   100%       10ms  1.09%  runtime.stopTheWorldWithSema
+         0     0%   100%       20ms  2.17%  runtime.stopm
+         0     0%   100%       20ms  2.17%  runtime.suspendG
+         0     0%   100%       30ms  3.26%  runtime.sweepone
+         0     0%   100%      240ms 26.09%  runtime.systemstack
+         0     0%   100%       10ms  1.09%  runtime.typePointers.next
+         0     0%   100%       10ms  1.09%  runtime.unblockTimerChan
+         0     0%   100%       10ms  1.09%  runtime.unlock
+         0     0%   100%       10ms  1.09%  runtime.unlock2
+         0     0%   100%       10ms  1.09%  runtime.unlockWithRank (inline)
+         0     0%   100%       10ms  1.09%  runtime.wakeNetPoller
+         0     0%   100%       40ms  4.35%  runtime.wakep
+         0     0%   100%       20ms  2.17%  runtime.wbBufFlush
+         0     0%   100%       20ms  2.17%  runtime.wbBufFlush.func1
+         0     0%   100%       20ms  2.17%  runtime.wbBufFlush1
+         0     0%   100%       30ms  3.26%  runtime.wbMove
+         0     0%   100%       10ms  1.09%  runtime.write
+         0     0%   100%       10ms  1.09%  sync.(*Once).Do
+         0     0%   100%       10ms  1.09%  sync.(*Pool).Get
+         0     0%   100%       10ms  1.09%  sync.(*Pool).Put
+         0     0%   100%       10ms  1.09%  sync.(*poolChain).popHead
+         0     0%   100%       50ms  5.43%  testing.(*B).RunParallel.func1
+         0     0%   100%       10ms  1.09%  testing.(*B).launch
+         0     0%   100%       10ms  1.09%  testing.(*B).runN
+         0     0%   100%       10ms  1.09%  time.NewTimer
+         0     0%   100%       10ms  1.09%  time.newTimer

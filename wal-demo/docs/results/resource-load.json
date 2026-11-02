@@ -1,0 +1,124 @@
+{
+  "workload": {
+    "players": 100,
+    "requested": 50000,
+    "concurrency": 32,
+    "create": {
+      "attempted": 100,
+      "success": 100,
+      "network_errors": 0,
+      "protocol_errors": 0,
+      "http_statuses": {
+        "201": 100
+      },
+      "elapsed_seconds": 0.020038808,
+      "attempts_per_second": 4990.316789302038,
+      "successful_ops_per_second": 4990.316789302038,
+      "p50_ms": 3.951058,
+      "p95_ms": 10.597857,
+      "p99_ms": 10.792785
+    },
+    "rewards": {
+      "attempted": 50000,
+      "success": 50000,
+      "network_errors": 0,
+      "protocol_errors": 0,
+      "http_statuses": {
+        "200": 50000
+      },
+      "elapsed_seconds": 8.200503673,
+      "attempts_per_second": 6097.186464853864,
+      "successful_ops_per_second": 6097.186464853864,
+      "p50_ms": 4.493054,
+      "p95_ms": 10.357251,
+      "p99_ms": 17.531451
+    },
+    "validation_reads": {
+      "attempted": 100,
+      "success": 100,
+      "network_errors": 0,
+      "protocol_errors": 0,
+      "http_statuses": {
+        "200": 100
+      },
+      "elapsed_seconds": 0.017577756,
+      "attempts_per_second": 5689.008312551386,
+      "successful_ops_per_second": 5689.008312551386,
+      "p50_ms": 4.165466,
+      "p95_ms": 7.182045,
+      "p99_ms": 8.78348
+    },
+    "balance_mismatches": 0,
+    "validation_passed": true,
+    "passed": true,
+    "note": "Closed-loop single-host HTTP workload. Latency includes failed attempts. No automatic retries; timeouts may have committed. Not a cluster capacity claim."
+  },
+  "exit_code": 0,
+  "workload_wall_seconds": 8.257952119998663,
+  "server_user_seconds": 13.52,
+  "server_system_seconds": 2.85,
+  "server_cpu_core_equivalents": 1.98233166796354,
+  "server_peak_rss_kib": 195560,
+  "server_final_rss_kib": 186852,
+  "sampled_peak_rss_kib": 193972,
+  "stats_after_workload": {
+    "shards": [
+      {
+        "id": 0,
+        "queue": 0,
+        "players": 24,
+        "pending": 153,
+        "pending_since_unix_milli": 1793622716472,
+        "pending_age_millis": 8244,
+        "last_checkpoint_unix_milli": 1793622724628,
+        "wal_records": 12024,
+        "wal_batches": 2024,
+        "checkpoints": 8,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 1,
+        "queue": 0,
+        "players": 26,
+        "pending": 168,
+        "pending_since_unix_milli": 1793622716473,
+        "pending_age_millis": 8243,
+        "last_checkpoint_unix_milli": 1793622724641,
+        "wal_records": 13026,
+        "wal_batches": 1997,
+        "checkpoints": 8,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 2,
+        "queue": 0,
+        "players": 26,
+        "pending": 174,
+        "pending_since_unix_milli": 1793622716475,
+        "pending_age_millis": 8241,
+        "last_checkpoint_unix_milli": 1793622724639,
+        "wal_records": 13026,
+        "wal_batches": 1946,
+        "checkpoints": 8,
+        "checkpoint_errors": 0
+      },
+      {
+        "id": 3,
+        "queue": 0,
+        "players": 24,
+        "pending": 162,
+        "pending_since_unix_milli": 1793622716474,
+        "pending_age_millis": 8242,
+        "last_checkpoint_unix_milli": 1793622724608,
+        "wal_records": 12024,
+        "wal_batches": 2057,
+        "checkpoints": 8,
+        "checkpoint_errors": 0
+      }
+    ],
+    "accepted": 50200,
+    "overloaded": 0
+  },
+  "retained_directory": "/workspace/GPT/wal-demo/data/resource_1793622716392112000",
+  "note": "CPU delta covers create+rewards+balance reads, not startup/shutdown; RSS HWM includes startup. Server process only; excludes load generator, MongoDB and OS page cache. Same-host closed-loop workload."
+}

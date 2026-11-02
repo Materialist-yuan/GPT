@@ -1,0 +1,45 @@
+File: actor-bench.test
+Build ID: 2ef9a03fa33a09e8590bf9fb9d3f4b4f19d0fc9b
+Type: alloc_space
+Time: 2026-11-02 12:31:29 UTC
+Showing nodes accounting for 408.33MB, 98.27% of 415.52MB total
+Dropped 62 nodes (cum <= 2.08MB)
+      flat  flat%   sum%        cum   cum%
+  200.91MB 48.35% 48.35%   274.41MB 66.04%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneSnapshot
+      42MB 10.11% 58.46%       42MB 10.11%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneInventory (inline)
+   38.50MB  9.27% 67.72%       76MB 18.29%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneResult (inline)
+   34.59MB  8.32% 76.05%    53.60MB 12.90%  github.com/Materialist-yuan/GPT/wal-demo/internal/wal.(*Log).AppendBatch
+   30.51MB  7.34% 83.39%    30.51MB  7.34%  bytes.Clone (inline)
+   17.44MB  4.20% 87.59%    17.44MB  4.20%  bufio.NewReaderSize (inline)
+   13.52MB  3.25% 90.84%   352.96MB 84.94%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).batch
+    8.50MB  2.05% 92.89%     8.50MB  2.05%  reflect.unsafe_New
+    5.35MB  1.29% 94.18%     8.85MB  2.13%  github.com/Materialist-yuan/GPT/wal-demo/internal/wal.(*Log).CompleteBatch
+       5MB  1.20% 95.38%        5MB  1.20%  encoding/hex.EncodeToString (inline)
+    3.50MB  0.84% 96.22%   377.85MB 90.93%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).run
+    3.50MB  0.84% 97.07%     3.50MB  0.84%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*Engine).Execute
+    2.50MB   0.6% 97.67%        8MB  1.93%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.Receipt.MarshalJSON
+       2MB  0.48% 98.15%    22.51MB  5.42%  github.com/Materialist-yuan/GPT/wal-demo/internal/wal.encodeRecord
+    0.50MB  0.12% 98.27%     9.35MB  2.25%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).ack
+         0     0% 98.27%    42.01MB 10.11%  encoding/json.Marshal (inline)
+         0     0% 98.27%    42.01MB 10.11%  encoding/json/v2.Marshal
+         0     0% 98.27%        8MB  1.93%  encoding/json/v2.makeMethodArshaler.func3
+         0     0% 98.27%        8MB  1.93%  encoding/json/v2.makeStructArshaler.func2
+         0     0% 98.27%       15MB  3.61%  encoding/json/v2.marshalEncode
+         0     0% 98.27%    11.04MB  2.66%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*memoryStore).Save
+         0     0% 98.27%    11.04MB  2.66%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).dirty
+         0     0% 98.27%    10.54MB  2.54%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).flushLoop
+         0     0% 98.27%    17.94MB  4.32%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.BenchmarkActorDurability.func1
+         0     0% 98.27%     8.14MB  1.96%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.BenchmarkActorDurability.func1.1
+         0     0% 98.27%     3.50MB  0.84%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.BenchmarkActorDurability.func1.3
+         0     0% 98.27%       42MB 10.11%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.clonePlayer (inline)
+         0     0% 98.27%       73MB 17.57%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneReceipt (inline)
+         0     0% 98.27%        5MB  1.20%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.hash
+         0     0% 98.27%    17.44MB  4.20%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.newEngine
+         0     0% 98.27%     9.30MB  2.24%  github.com/Materialist-yuan/GPT/wal-demo/internal/wal.(*Log).VisitCompleted
+         0     0% 98.27%     8.14MB  1.96%  github.com/Materialist-yuan/GPT/wal-demo/internal/wal.(*Log).recover
+         0     0% 98.27%     8.14MB  1.96%  github.com/Materialist-yuan/GPT/wal-demo/internal/wal.Open
+         0     0% 98.27%     8.50MB  2.05%  reflect.New
+         0     0% 98.27%     3.50MB  0.84%  testing.(*B).RunParallel.func1
+         0     0% 98.27%     8.14MB  1.96%  testing.(*B).launch
+         0     0% 98.27%     9.80MB  2.36%  testing.(*B).run1.func1
+         0     0% 98.27%    17.94MB  4.32%  testing.(*B).runN

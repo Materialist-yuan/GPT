@@ -46,7 +46,7 @@ type control struct {
 type shard struct {
 	id         int
 	engine     *Engine
-	log        *wal.Log
+	log        journal
 	queue      chan command
 	control    chan control
 	states     map[string]Snapshot
@@ -71,7 +71,21 @@ type Engine struct {
 	closeErr             error
 }
 
+// journal permits isolated test benchmarks; production always opens a durable WAL.
+type journal interface {
+	AppendBatch([]json.RawMessage) ([]uint64, error)
+	CompleteBatch([]uint64) error
+	LastID() uint64
+	Pending() []wal.Entry
+	VisitCompleted(func(wal.Entry) error) error
+	Close() error
+}
+
 func New(ctx context.Context, store Store, opts Options) (*Engine, error) {
+	return newEngine(ctx, store, opts, func(path string) (journal, error) { return wal.Open(path) })
+}
+
+func newEngine(ctx context.Context, store Store, opts Options, open func(string) (journal, error)) (*Engine, error) {
 	if store == nil || opts.Directory == "" || opts.Shards < 1 || opts.Shards > 256 || opts.QueueCapacity < 1 || opts.BatchSize < 1 || opts.BatchSize > 1024 || opts.BatchWindow < 0 || opts.FlushInterval <= 0 || opts.MaxPlayersPerShard < 1 || opts.MaxReceiptsPerPlayer < 1 || opts.MaxReceiptsPerPlayer > 2000 || opts.MaxUncheckpointed < 1 {
 		return nil, errors.New("invalid actor options")
 	}
@@ -118,7 +132,7 @@ func New(ctx context.Context, store Store, opts Options) (*Engine, error) {
 		}
 	}
 	for id := 0; id < opts.Shards; id++ {
-		journal, err := wal.Open(filepath.Join(opts.Directory, fmt.Sprintf("shard-%03d.wal", id)))
+		journal, err := open(filepath.Join(opts.Directory, fmt.Sprintf("shard-%03d.wal", id)))
 		if err != nil {
 			return nil, err
 		}

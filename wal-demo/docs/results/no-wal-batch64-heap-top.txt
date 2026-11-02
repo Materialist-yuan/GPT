@@ -1,0 +1,33 @@
+File: actor-bench.test
+Build ID: 2ef9a03fa33a09e8590bf9fb9d3f4b4f19d0fc9b
+Type: alloc_space
+Time: 2026-11-02 12:31:26 UTC
+Showing nodes accounting for 346.62MB, 97.62% of 355.05MB total
+Dropped 57 nodes (cum <= 1.78MB)
+      flat  flat%   sum%        cum   cum%
+  213.52MB 60.14% 60.14%   300.02MB 84.50%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneSnapshot
+      47MB 13.24% 73.37%       47MB 13.24%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneInventory (inline)
+      43MB 12.11% 85.49%    88.50MB 24.93%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneResult (inline)
+   14.59MB  4.11% 89.59%   303.46MB 85.47%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).batch
+       9MB  2.54% 92.13%        9MB  2.54%  bytes.Clone (inline)
+       6MB  1.69% 93.82%   331.06MB 93.24%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).run
+       5MB  1.41% 95.23%        5MB  1.41%  reflect.unsafe_New
+       4MB  1.13% 96.36%        4MB  1.13%  encoding/hex.EncodeToString (inline)
+       3MB  0.85% 97.20%        3MB  0.85%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*Engine).Execute
+       1MB  0.28% 97.48%        4MB  1.13%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.Receipt.MarshalJSON
+    0.51MB  0.14% 97.62%    14.06MB  3.96%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*memoryStore).Save
+         0     0% 97.62%    15.50MB  4.37%  encoding/json.Marshal (inline)
+         0     0% 97.62%    15.50MB  4.37%  encoding/json/v2.Marshal
+         0     0% 97.62%        4MB  1.13%  encoding/json/v2.makeMethodArshaler.func3
+         0     0% 97.62%     4.50MB  1.27%  encoding/json/v2.makeStructArshaler.func2
+         0     0% 97.62%        8MB  2.25%  encoding/json/v2.marshalEncode
+         0     0% 97.62%     7.52MB  2.12%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*Engine).shutdown
+         0     0% 97.62%    21.59MB  6.08%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).dirty
+         0     0% 97.62%     6.54MB  1.84%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.(*shard).flushLoop
+         0     0% 97.62%     3.50MB  0.99%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.BenchmarkActorDurability.func1.3
+         0     0% 97.62%       47MB 13.24%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.clonePlayer (inline)
+         0     0% 97.62%       86MB 24.22%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.cloneReceipt (inline)
+         0     0% 97.62%        4MB  1.13%  github.com/Materialist-yuan/GPT/wal-demo/internal/actor.hash
+         0     0% 97.62%        5MB  1.41%  reflect.New
+         0     0% 97.62%     2.16MB  0.61%  runtime.main
+         0     0% 97.62%     3.50MB  0.99%  testing.(*B).RunParallel.func1
