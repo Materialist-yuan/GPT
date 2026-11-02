@@ -8,9 +8,11 @@
 
 | 项目 | 内容 | 文档 |
 | --- | --- | --- |
-| [wal-demo](wal-demo/) | 玩家创建、金币奖励、道具购买，以及基于 WAL 的恢复 | [启动与接口说明](wal-demo/README.md) |
+| [wal-demo](wal-demo/) | 游戏资产：同步写库基线与分片 Actor / 批量 WAL / 后台快照对照 | [启动与接口说明](wal-demo/README.md) |
 
 目前已有 `wal-demo`：Go + MongoDB 的游戏资产与 WAL 恢复示例。它尚未实现登录鉴权、跨玩家交易、日志压缩与回执清理。
+
+想学习生产设计，可从 [开源调研](wal-demo/docs/research.md)、[Actor 架构与故障练习](wal-demo/docs/actor-guide.md) 和 [实际验证记录](wal-demo/docs/validation.md) 开始。下文快速运行及流程图介绍同步基线；新增 Actor 路径默认端口 8081，MongoDB 快照在后台保存。
 
 ## 运行 wal-demo
 

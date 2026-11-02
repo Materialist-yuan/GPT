@@ -22,6 +22,24 @@ type fakeService struct {
 	getID      string
 }
 
+type overloadError struct{}
+
+func (overloadError) Error() string   { return "mailbox full" }
+func (overloadError) HTTPStatus() int { return 429 }
+
+func TestAdmissionOverloadIsExplicitAndRetryable(t *testing.T) {
+	service := &fakeService{err: overloadError{}}
+	for _, tc := range []struct{ method, path, body string }{
+		{"GET", "/players/alice", ""},
+		{"POST", "/players/alice/rewards", `{"request_id":"r","amount":1}`},
+	} {
+		w := request(t, New(service), tc.method, tc.path, tc.body)
+		if w.Code != 429 || w.Header().Get("Retry-After") != "1" || !strings.Contains(w.Body.String(), "overloaded") {
+			t.Fatalf("overload response: %d %v %s", w.Code, w.Header(), w.Body)
+		}
+	}
+}
+
 func (s *fakeService) Execute(_ context.Context, op game.Operation) (game.Result, error) {
 	s.operations = append(s.operations, op)
 	return s.result, s.err

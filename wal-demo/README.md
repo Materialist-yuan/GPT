@@ -4,6 +4,25 @@
 
 这是用于理解资产写入和故障恢复的小型 Demo。
 
+## 生产设计学习入口
+
+现在保留两个可以运行对照的版本：下文的 `cmd/server` 是同步写 MongoDB 的一致性基线；新增的 `cmd/actor-server` 采用分片单写者、内存资产、批量 WAL 和后台 MongoDB 快照。
+
+- [调研依据](docs/research.md)：实际核对 Orleans、Nakama、Redis 官方源码，解释取舍。
+- [Actor 学习与运行指南](docs/actor-guide.md)：启动、背压、恢复协议、指标、故障演练与能力边界。
+- [验证及性能测量记录](docs/validation.md)：真实数据库测试、SIGKILL 恢复和单机对照数据。
+
+```bash
+# 在 wal-demo 目录，准备环境后运行新版本（默认端口 8081）
+bash scripts/setup.sh
+bash scripts/mongo.sh
+source scripts/env.sh
+./bin/actor-server
+# 另一终端：API_URL=http://127.0.0.1:8081 python3 scripts/smoke.py
+```
+
+新增路径是学习生产机制的单机实现，尚不提供跨节点复制、分布式 fencing、玩家迁移、日志压缩或完整身份认证。下面的逐笔 MongoDB 写入顺序只描述同步基线，Actor 的确认点与恢复协议请阅读专门指南。
+
 ## 启动
 
 当前安装脚本面向此云环境的 **Linux amd64**，使用固定版本 Go 1.27.3，并在下载时验证官方 SHA-256。MongoDB 使用固定镜像摘要，通过本机 Docker 守护进程运行。

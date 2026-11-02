@@ -11,8 +11,11 @@ player = "smoke_" + uuid.uuid4().hex
 
 
 def request(path, body=None, status=200):
+    headers = {"Content-Type": "application/json"}
+    if os.environ.get("APP_API_TOKEN"):
+        headers["Authorization"] = "Bearer " + os.environ["APP_API_TOKEN"]
     req = urllib.request.Request(base + path, data=None if body is None else json.dumps(body).encode(),
-                                 headers={"Content-Type": "application/json"})
+                                 headers=headers)
     try:
         response = urllib.request.urlopen(req, timeout=10)
     except urllib.error.HTTPError as error:

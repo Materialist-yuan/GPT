@@ -214,3 +214,236 @@ func TestIOFailurePoisonsLogUntilReopen(t *testing.T) {
 		t.Fatalf("next ID after reopen = %d", got)
 	}
 }
+
+func TestBatchAppendAndCompletionReopen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "batch.wal")
+	l := openTestLog(t, path)
+	payloads := []json.RawMessage{json.RawMessage(`{"n":1}`), json.RawMessage(`{"n":2}`), json.RawMessage(`{"n":3}`)}
+	ids, err := l.AppendBatch(payloads)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ids) != 3 || ids[0] != 1 || ids[2] != 3 || l.LastID() != 3 {
+		t.Fatalf("IDs=%v last=%d", ids, l.LastID())
+	}
+	payloads[0][0] = '!'
+	if !json.Valid(l.Pending()[0].Payload) {
+		t.Fatal("batch retained caller payload alias")
+	}
+	if err := l.CompleteBatch([]uint64{ids[0], ids[2], ids[0]}); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.CompleteBatch([]uint64{ids[0], ids[2]}); err != nil {
+		t.Fatal(err)
+	}
+	l.Close()
+	l = openTestLog(t, path)
+	if pending := l.Pending(); len(pending) != 1 || pending[0].ID != 2 {
+		t.Fatalf("pending=%v", pending)
+	}
+	if l.LastID() != 3 {
+		t.Fatalf("last=%d", l.LastID())
+	}
+	if got := appendTestIntent(t, l, `{}`); got != 4 {
+		t.Fatalf("next=%d", got)
+	}
+}
+
+func TestBatchValidationWritesNothing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "batch.wal")
+	l := openTestLog(t, path)
+	one := appendTestIntent(t, l, `{}`)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	large, _ := json.Marshal(strings.Repeat("x", MaxFrameSize))
+	for _, payloads := range [][]json.RawMessage{
+		{json.RawMessage(`{}`), json.RawMessage(`invalid`)},
+		{json.RawMessage(`{}`), large},
+	} {
+		ids, err := l.AppendBatch(payloads)
+		if err == nil || ids != nil {
+			t.Fatalf("invalid batch returned %v %v", ids, err)
+		}
+	}
+	if err := l.CompleteBatch([]uint64{one, 99}); err == nil {
+		t.Fatal("unknown ID accepted")
+	}
+	if pending := l.Pending(); len(pending) != 1 || pending[0].ID != one {
+		t.Fatal("validation changed pending")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatalf("validation wrote bytes: %v", err)
+	}
+	if got := appendTestIntent(t, l, `{}`); got != 2 {
+		t.Fatalf("validation consumed IDs: %d", got)
+	}
+}
+
+func TestBatchOverflowAndEmpty(t *testing.T) {
+	l := openTestLog(t, filepath.Join(t.TempDir(), "batch.wal"))
+	if ids, err := l.AppendBatch(nil); err != nil || len(ids) != 0 {
+		t.Fatalf("empty append=%v,%v", ids, err)
+	}
+	if err := l.CompleteBatch(nil); err != nil {
+		t.Fatal(err)
+	}
+	l.lastID = ^uint64(0) - 1
+	ids, err := l.AppendBatch([]json.RawMessage{json.RawMessage(`{}`), json.RawMessage(`{}`)})
+	if err == nil || ids != nil || len(l.Pending()) != 0 {
+		t.Fatalf("overflow=%v,%v", ids, err)
+	}
+}
+
+func TestBatchIOFailureReturnsNoIDsAndPoisons(t *testing.T) {
+	for _, completion := range []bool{false, true} {
+		t.Run(map[bool]string{false: "append", true: "complete"}[completion], func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "batch.wal")
+			l := openTestLog(t, path)
+			one := appendTestIntent(t, l, `{}`)
+			if err := l.file.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if completion {
+				if err := l.CompleteBatch([]uint64{one}); err == nil {
+					t.Fatal("completion I/O failure missing")
+				}
+			} else {
+				ids, err := l.AppendBatch([]json.RawMessage{json.RawMessage(`{}`), json.RawMessage(`{}`)})
+				if err == nil || ids != nil {
+					t.Fatalf("failed append returned %v,%v", ids, err)
+				}
+			}
+			if _, err := l.AppendBatch([]json.RawMessage{json.RawMessage(`{}`)}); !errors.Is(err, ErrPoisoned) {
+				t.Fatalf("not poisoned: %v", err)
+			}
+			if err := l.CompleteBatch([]uint64{one}); !errors.Is(err, ErrPoisoned) {
+				t.Fatalf("completion not poisoned: %v", err)
+			}
+			l.Close()
+			l = openTestLog(t, path)
+			if p := l.Pending(); len(p) != 1 || p[0].ID != one {
+				t.Fatalf("pending after reopen: %v", p)
+			}
+		})
+	}
+}
+
+func TestPartialBatchRecoveryKeepsCompleteFrames(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "batch.wal")
+	l := openTestLog(t, path)
+	l.Close()
+	one, err := encodeRecord(record{Type: "intent", ID: 1, Payload: json.RawMessage(`{"n":1}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	two, err := encodeRecord(record{Type: "intent", ID: 2, Payload: json.RawMessage(`{"n":2}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A crash can preserve one full frame and part of the next unacknowledged batch.
+	if err := os.WriteFile(path, append(one, two[:len(two)/2]...), 0600); err != nil {
+		t.Fatal(err)
+	}
+	l = openTestLog(t, path)
+	if p := l.Pending(); len(p) != 1 || p[0].ID != 1 || l.LastID() != 1 {
+		t.Fatalf("partial batch: %v last=%d", p, l.LastID())
+	}
+	if got := appendTestIntent(t, l, `{}`); got != 2 {
+		t.Fatalf("next=%d", got)
+	}
+}
+
+func TestConcurrentBatchesHaveContiguousIDs(t *testing.T) {
+	l := openTestLog(t, filepath.Join(t.TempDir(), "batch.wal"))
+	const workers = 12
+	var wg sync.WaitGroup
+	errs := make(chan error, workers)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ids, err := l.AppendBatch([]json.RawMessage{json.RawMessage(`{}`), json.RawMessage(`{}`)})
+			if err == nil && (len(ids) != 2 || ids[1] != ids[0]+1) {
+				err = errors.New("batch IDs not contiguous")
+			}
+			_ = l.LastID()
+			_ = l.Pending()
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(l.Pending()) != 2*workers || l.LastID() != 2*workers {
+		t.Fatalf("last=%d pending=%d", l.LastID(), len(l.Pending()))
+	}
+}
+
+func TestVisitCompletedStreamsInOrderAndPreservesAppendOffset(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "visit.wal")
+	l := openTestLog(t, path)
+	ids, err := l.AppendBatch([]json.RawMessage{json.RawMessage(`{"n":1}`), json.RawMessage(`{"n":2}`), json.RawMessage(`{"n":3}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.CompleteBatch([]uint64{ids[2], ids[0]}); err != nil {
+		t.Fatal(err)
+	}
+	var visited []Entry
+	if err := l.VisitCompleted(func(e Entry) error { visited = append(visited, e); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if len(visited) != 2 || visited[0].ID != 1 || visited[1].ID != 3 {
+		t.Fatalf("visited=%v", visited)
+	}
+	if string(visited[0].Payload) != `{"n":1}` || string(visited[1].Payload) != `{"n":3}` {
+		t.Fatalf("payload=%v", visited)
+	}
+	stop := errors.New("visitor failure")
+	if err := l.VisitCompleted(func(Entry) error { return stop }); !errors.Is(err, stop) {
+		t.Fatalf("callback error=%v", err)
+	}
+	if got := appendTestIntent(t, l, `{"n":4}`); got != 4 {
+		t.Fatalf("next=%d", got)
+	}
+	l.Close()
+	l = openTestLog(t, path)
+	if p := l.Pending(); len(p) != 2 || p[0].ID != 2 || p[1].ID != 4 {
+		t.Fatalf("append offset damaged: %v", p)
+	}
+}
+
+func TestVisitCompletedRefusesCorruptionAndClosedLogs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "visit.wal")
+	l := openTestLog(t, path)
+	id := appendTestIntent(t, l, `{"n":1}`)
+	if err := l.Complete(id); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.VisitCompleted(nil); err == nil {
+		t.Fatal("nil visitor accepted")
+	}
+	// Mutate an already-open file so this visitor must independently check CRC.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = bytes.Replace(data, []byte(`"n":1`), []byte(`"n":9`), 1)
+	if _, err := l.file.WriteAt(data, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.VisitCompleted(func(Entry) error { return nil }); err == nil {
+		t.Fatal("corruption accepted")
+	}
+	l.Close()
+	if err := l.VisitCompleted(func(Entry) error { return nil }); !errors.Is(err, ErrClosed) {
+		t.Fatalf("closed visitor=%v", err)
+	}
+}

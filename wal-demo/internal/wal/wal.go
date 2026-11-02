@@ -207,48 +207,105 @@ func (l *Log) recoverFrame(data []byte) error {
 	return nil
 }
 
-// Append writes and fsyncs a JSON intent. An I/O error has an uncertain
-// durability outcome; the log then refuses further writes until it is reopened.
+// Append writes and fsyncs one JSON intent. See AppendBatch for recovery rules.
 func (l *Log) Append(payload json.RawMessage) (uint64, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if err := l.writable(); err != nil {
+	ids, err := l.AppendBatch([]json.RawMessage{payload})
+	if err != nil {
 		return 0, err
 	}
-	if !json.Valid(payload) {
-		return 0, errors.New("wal payload must be valid JSON")
-	}
-	if l.lastID == math.MaxUint64 {
-		return 0, errors.New("wal ID space exhausted")
-	}
-	id := l.lastID + 1
-	if err := l.writeRecord(record{Type: "intent", ID: id, Payload: payload}); err != nil {
-		return 0, err
-	}
-	l.lastID = id
-	l.pending[id] = append(json.RawMessage(nil), payload...)
-	return id, nil
+	return ids[0], nil
 }
 
-// Complete durably acknowledges an intent after the database has handled it.
-// Completing the same known ID twice is safe; unknown IDs are rejected.
-func (l *Log) Complete(id uint64) error {
+// AppendBatch durably appends a group of independently recoverable intents with
+// one fsync. All payloads are validated before any bytes are written. A failed
+// batch returns no IDs and poisons the log on I/O uncertainty; some complete
+// frames may still survive a crash and must be safely replayed by the caller.
+func (l *Log) AppendBatch(payloads []json.RawMessage) ([]uint64, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if err := l.writable(); err != nil {
+		return nil, err
+	}
+	if len(payloads) == 0 {
+		return nil, nil
+	}
+	if uint64(len(payloads)) > math.MaxUint64-l.lastID {
+		return nil, errors.New("wal ID space exhausted")
+	}
+	ids := make([]uint64, len(payloads))
+	copies := make([]json.RawMessage, len(payloads))
+	var data []byte
+	for i, payload := range payloads {
+		if !json.Valid(payload) {
+			return nil, errors.New("wal payload must be valid JSON")
+		}
+		id := l.lastID + uint64(i) + 1
+		encoded, err := encodeRecord(record{Type: "intent", ID: id, Payload: payload})
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, encoded...)
+		ids[i] = id
+		copies[i] = append(json.RawMessage(nil), payload...)
+	}
+	if err := l.writeFrames(data); err != nil {
+		return nil, err
+	}
+	for i, id := range ids {
+		l.pending[id] = copies[i]
+	}
+	l.lastID = ids[len(ids)-1]
+	return ids, nil
+}
+
+// Complete durably acknowledges an intent after its database operation is safe.
+func (l *Log) Complete(id uint64) error { return l.CompleteBatch([]uint64{id}) }
+
+// CompleteBatch persists completion markers in one fsync. Repeated IDs and
+// previously completed IDs are harmless; an unknown ID rejects the whole batch.
+func (l *Log) CompleteBatch(ids []uint64) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if err := l.writable(); err != nil {
 		return err
 	}
-	if id == 0 || id > l.lastID {
-		return errors.New("unknown wal intent ID")
+	seen := make(map[uint64]bool, len(ids))
+	var data []byte
+	var complete []uint64
+	for _, id := range ids {
+		if id == 0 || id > l.lastID {
+			return errors.New("unknown wal intent ID")
+		}
+		if _, ok := l.pending[id]; !ok || seen[id] {
+			continue
+		}
+		seen[id] = true
+		encoded, err := encodeRecord(record{Type: "complete", ID: id})
+		if err != nil {
+			return err
+		}
+		data = append(data, encoded...)
+		complete = append(complete, id)
 	}
-	if _, ok := l.pending[id]; !ok {
+	if len(data) == 0 {
 		return nil
 	}
-	if err := l.writeRecord(record{Type: "complete", ID: id}); err != nil {
+	if err := l.writeFrames(data); err != nil {
 		return err
 	}
-	delete(l.pending, id)
+	for _, id := range complete {
+		delete(l.pending, id)
+	}
 	return nil
+}
+
+// LastID is the greatest successfully appended intent ID, including completed
+// intents. After a failed write it must not be treated as a recovery watermark;
+// close and reopen the poisoned log to discover its actual durable records.
+func (l *Log) LastID() uint64 {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.lastID
 }
 
 func (l *Log) writable() error {
@@ -261,19 +318,25 @@ func (l *Log) writable() error {
 	return nil
 }
 
-func (l *Log) writeRecord(rec record) error {
+func encodeRecord(rec record) ([]byte, error) {
 	body, err := json.Marshal(rec)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	data, err := json.Marshal(frame{Record: body, CRC32: crc32.ChecksumIEEE(body)})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	data = append(data, '\n')
 	if len(data) > MaxFrameSize {
-		return fmt.Errorf("wal record exceeds %d bytes", MaxFrameSize)
+		return nil, fmt.Errorf("wal record exceeds %d bytes", MaxFrameSize)
 	}
+	return data, nil
+}
+
+// writeFrames is called with the mutex held and prevalidated bytes. Exactly one
+// Sync follows all writes, regardless of the number of frames in the group.
+func (l *Log) writeFrames(data []byte) error {
 	for len(data) > 0 {
 		n, err := l.file.Write(data)
 		if err != nil {
@@ -291,6 +354,64 @@ func (l *Log) writeRecord(rec record) error {
 		return l.failed
 	}
 	return nil
+}
+
+// VisitCompleted streams the retained journal's completed intents in append
+// order without retaining history or changing the append offset. The callback
+// runs under the log mutex and must not call other methods on this Log.
+func (l *Log) VisitCompleted(fn func(Entry) error) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if err := l.writable(); err != nil {
+		return err
+	}
+	if fn == nil {
+		return errors.New("nil completed-intent visitor")
+	}
+	info, err := l.file.Stat()
+	if err != nil {
+		return fmt.Errorf("stat wal for completed visit: %w", err)
+	}
+	reader := bufio.NewReaderSize(io.NewSectionReader(l.file, 0, info.Size()), MaxFrameSize+1)
+	var offset int64
+	for {
+		line, err := reader.ReadSlice('\n')
+		if errors.Is(err, io.EOF) && len(line) == 0 {
+			return nil
+		}
+		if err != nil || len(line) > MaxFrameSize {
+			return fmt.Errorf("invalid WAL frame during completed visit at byte %d: %w", offset, errors.Join(err, errors.New("incomplete or oversized frame")))
+		}
+		var f frame
+		if err := decodeStrict(line, &f); err != nil {
+			return fmt.Errorf("decode wal frame at byte %d: %w", offset, err)
+		}
+		if crc32.ChecksumIEEE(f.Record) != f.CRC32 {
+			return fmt.Errorf("wal checksum mismatch at byte %d", offset)
+		}
+		var rec record
+		if err := decodeStrict(f.Record, &rec); err != nil {
+			return fmt.Errorf("decode wal record at byte %d: %w", offset, err)
+		}
+		switch rec.Type {
+		case "intent":
+			if rec.ID == 0 || rec.ID > l.lastID || !json.Valid(rec.Payload) {
+				return fmt.Errorf("invalid wal intent at byte %d", offset)
+			}
+			if _, pending := l.pending[rec.ID]; !pending {
+				if err := fn(Entry{ID: rec.ID, Payload: append(json.RawMessage(nil), rec.Payload...)}); err != nil {
+					return err
+				}
+			}
+		case "complete":
+			if rec.ID == 0 || rec.ID > l.lastID || len(rec.Payload) != 0 {
+				return fmt.Errorf("invalid wal completion at byte %d", offset)
+			}
+		default:
+			return fmt.Errorf("unknown wal record type at byte %d", offset)
+		}
+		offset += int64(len(line))
+	}
 }
 
 // Pending returns copies of unreconciled intents in append order.

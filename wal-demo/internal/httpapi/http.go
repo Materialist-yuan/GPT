@@ -85,6 +85,12 @@ func New(service Service) http.Handler {
 			failure(w, http.StatusNotFound, "player_not_found")
 			return
 		}
+		var admission interface{ HTTPStatus() int }
+		if errors.As(err, &admission) && admission.HTTPStatus() == http.StatusTooManyRequests {
+			w.Header().Set("Retry-After", "1")
+			failure(w, http.StatusTooManyRequests, "overloaded")
+			return
+		}
 		if err != nil {
 			failure(w, http.StatusServiceUnavailable, "unavailable")
 			return
@@ -109,6 +115,12 @@ func New(service Service) http.Handler {
 
 func execute(w http.ResponseWriter, r *http.Request, service Service, op game.Operation) {
 	result, err := service.Execute(r.Context(), op)
+	var admission interface{ HTTPStatus() int }
+	if errors.As(err, &admission) && admission.HTTPStatus() == http.StatusTooManyRequests {
+		w.Header().Set("Retry-After", "1")
+		failure(w, http.StatusTooManyRequests, "overloaded")
+		return
+	}
 	if err != nil || result.Status < 200 || result.Status > 599 {
 		failure(w, http.StatusServiceUnavailable, "unavailable")
 		return

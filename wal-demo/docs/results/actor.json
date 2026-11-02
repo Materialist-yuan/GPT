@@ -1,0 +1,54 @@
+{
+  "players": 100,
+  "requested": 2000,
+  "concurrency": 32,
+  "create": {
+    "attempted": 100,
+    "success": 100,
+    "network_errors": 0,
+    "protocol_errors": 0,
+    "http_statuses": {
+      "201": 100
+    },
+    "elapsed_seconds": 0.014189126,
+    "attempts_per_second": 7047.650433155643,
+    "successful_ops_per_second": 7047.650433155643,
+    "p50_ms": 2.813817,
+    "p95_ms": 7.531915,
+    "p99_ms": 7.937627
+  },
+  "rewards": {
+    "attempted": 2000,
+    "success": 2000,
+    "network_errors": 0,
+    "protocol_errors": 0,
+    "http_statuses": {
+      "200": 2000
+    },
+    "elapsed_seconds": 0.190124909,
+    "attempts_per_second": 10519.400169706327,
+    "successful_ops_per_second": 10519.400169706327,
+    "p50_ms": 2.916887,
+    "p95_ms": 4.38442,
+    "p99_ms": 5.65165
+  },
+  "validation_reads": {
+    "attempted": 100,
+    "success": 100,
+    "network_errors": 0,
+    "protocol_errors": 0,
+    "http_statuses": {
+      "200": 100
+    },
+    "elapsed_seconds": 0.006369407,
+    "attempts_per_second": 15700.048685850976,
+    "successful_ops_per_second": 15700.048685850976,
+    "p50_ms": 1.664444,
+    "p95_ms": 2.904404,
+    "p99_ms": 3.096288
+  },
+  "balance_mismatches": 0,
+  "validation_passed": true,
+  "passed": true,
+  "note": "Closed-loop single-host HTTP workload. Latency includes failed attempts. No automatic retries; timeouts may have committed. Not a cluster capacity claim."
+}

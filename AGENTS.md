@@ -13,6 +13,9 @@
 - `wal-demo/cmd/server/`：配置、启动时恢复、HTTP 服务和退出流程。
 - `wal-demo/internal/game/`：资产规则、MongoDB 存储、幂等与写入编排。
 - `wal-demo/internal/wal/`：日志格式、校验、同步落盘、文件锁和恢复。
+- `wal-demo/internal/actor/`：分片单写者、确定性结果日志、后台快照和恢复。
+- `wal-demo/cmd/actor-server/`：Actor 版本入口；`cmd/loadgen/`：有界并发压测与余额校验。
+- `wal-demo/docs/`：调研来源、架构指南与验证记录。
 - `wal-demo/internal/httpapi/`：JSON 接口及输入校验。
 - `wal-demo/scripts/`：工具链、MongoDB 启动和 HTTP 功能检查。
 
@@ -48,7 +51,7 @@ MONGO_TEST_URI=mongodb://127.0.0.1:27017 go test -race -count=1 ./...
 
 仅修改文档时，检查相对链接、目录、命令和事实即可。修改资产逻辑、WAL 或存储时，运行相关测试与完整数据库链路检查；补充能揭示行为错误的测试。
 
-## wal-demo 必须保持的资产一致性约束
+## wal-demo 同步基线的资产一致性约束
 
 1. 资产写入顺序为：WAL intent 同步落盘 → MongoDB 提交 → WAL complete 同步落盘 → 返回结果。不能提前返回成功。
 2. 金币、背包、版本号和幂等回执必须在同一条 MongoDB 文档更新中原子提交，保留版本号 CAS 和持久化写关注。
@@ -58,6 +61,18 @@ MONGO_TEST_URI=mongodb://127.0.0.1:27017 go test -race -count=1 ./...
 6. 未完成 WAL 使用原代码语义恢复。更改商品价格、操作语义或日志格式前，必须处理与现有日志的兼容性，不能让重放产生另一笔资产变动。
 
 当前是单写者、单玩家文档的示例。文件锁不协调不同 WAL 的多实例，不具备跨玩家事务。扩展转账或交易时，需要单独设计原子性和恢复协议。
+
+## wal-demo Actor 路径的约束
+
+该路径有意采用不同于同步基线的确认点，不能把上面的逐笔 Mongo 写入要求套在 `internal/actor/` 上：
+
+- 同玩家读写进入同一个有界分片 mailbox；不同分片并行。批次隔离计算结果，WAL 批量 fsync 成功后才能发布内存状态和返回。不能提前确认或忽略落盘错误。
+- 事件存储确定的状态及回执（含 HTTP 状态码），恢复不依赖当前价格重算。业务拒绝也必须可幂等重现。
+- MongoDB 在后台保存玩家状态、所有有效回执和 WAL 序号的一致快照。只确认已落库快照覆盖的事件，不能清除快照捕获之后的新修改。
+- MongoDB 暂时不可用时允许在积压预算内继续服务；队列、玩家、回执和未落库事件都有上限，超过时明确拒绝。不能静默丢弃资产命令或删除幂等回执。
+- 保留日志目录锁、固定布局、随机 journal ID 与 Mongo 元数据绑定，以及恢复水位检查。已有本地日志历史不得重新绑定空数据库。
+- 本地 UUID 和文件锁不是分布式 fencing。不得声称跨节点高可用、机器丢失零数据损失，或用单机压测推导在线人数。
+- 修改恢复逻辑时，执行 `MONGO_TEST_URI=... go test -race -count=1 ./...`，其中进程级 SIGKILL 测试必须实际运行。详细语义和生产缺口见 `wal-demo/docs/actor-guide.md`。
 
 ## 数据和提交
 

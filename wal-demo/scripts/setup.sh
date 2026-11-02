@@ -22,3 +22,5 @@ if ! go mod download; then
 fi
 go mod verify
 go build -o bin/game-server ./cmd/server
+go build -o bin/actor-server ./cmd/actor-server
+go build -o bin/loadgen ./cmd/loadgen

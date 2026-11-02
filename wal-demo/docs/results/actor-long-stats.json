@@ -1,0 +1,54 @@
+{
+  "shards": [
+    {
+      "id": 0,
+      "queue": 0,
+      "players": 25,
+      "pending": 0,
+      "pending_age_millis": 0,
+      "last_checkpoint_unix_milli": 1793619817590,
+      "wal_records": 12525,
+      "wal_batches": 2138,
+      "checkpoints": 11,
+      "checkpoint_errors": 0
+    },
+    {
+      "id": 1,
+      "queue": 0,
+      "players": 25,
+      "pending": 0,
+      "pending_age_millis": 0,
+      "last_checkpoint_unix_milli": 1793619817597,
+      "wal_records": 12525,
+      "wal_batches": 2052,
+      "checkpoints": 11,
+      "checkpoint_errors": 0
+    },
+    {
+      "id": 2,
+      "queue": 0,
+      "players": 25,
+      "pending": 0,
+      "pending_age_millis": 0,
+      "last_checkpoint_unix_milli": 1793619817617,
+      "wal_records": 12525,
+      "wal_batches": 2059,
+      "checkpoints": 11,
+      "checkpoint_errors": 0
+    },
+    {
+      "id": 3,
+      "queue": 0,
+      "players": 25,
+      "pending": 0,
+      "pending_age_millis": 0,
+      "last_checkpoint_unix_milli": 1793619817597,
+      "wal_records": 12525,
+      "wal_batches": 2025,
+      "checkpoints": 11,
+      "checkpoint_errors": 0
+    }
+  ],
+  "accepted": 50200,
+  "overloaded": 0
+}
