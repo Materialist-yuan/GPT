@@ -1,0 +1,22 @@
+name: gpt-demo-services
+
+services:
+  mongo:
+    image: mongo@sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef
+    container_name: gpt-mongo
+    command: ["--bind_ip_all"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MONGO_DEV_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok === 1 ? 0 : 1)'"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 2s
+
+volumes:
+  mongo_data:
+    name: gpt-demo-mongo-data
