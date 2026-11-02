@@ -1,6 +1,8 @@
-# GPT · 游戏资产与持久化实验
+# GPT · Demo 工作区
 
-使用 Go 和 MongoDB 实现游戏资产后端，探索金币、背包、请求幂等和崩溃恢复。
+这个仓库用于按需求编写、运行和验证各种 Demo。每个 Demo 独立放在一个子目录中，可以采用不同语言和技术栈，并提供自己的 README、运行命令和验证方法。
+
+你可以直接描述想验证的功能或机制，编码助手会在这里实现对应示例，并按你的要求提交到 GitHub。
 
 ## 项目入口
 
@@ -8,9 +10,9 @@
 | --- | --- | --- |
 | [wal-demo](wal-demo/) | 玩家创建、金币奖励、道具购买，以及基于 WAL 的恢复 | [启动与接口说明](wal-demo/README.md) |
 
-当前 Demo 为单进程、本地开发示例，尚未实现登录鉴权、跨玩家交易、日志压缩与回执清理。
+目前已有 `wal-demo`：Go + MongoDB 的游戏资产与 WAL 恢复示例。它尚未实现登录鉴权、跨玩家交易、日志压缩与回执清理。
 
-## 快速运行
+## 运行 wal-demo
 
 在此云环境中，从仓库根目录执行（需要本机 Docker 可用）：
 
@@ -33,7 +35,7 @@ python3 scripts/smoke.py
 
 功能检查会创建一个独立玩家，验证购买、奖励、余额不足和重复请求。完整调用示例见 [API 文档](wal-demo/README.md#调用接口)。
 
-## 写入与恢复
+## wal-demo 的写入与恢复
 
 ```mermaid
 flowchart TD
@@ -49,7 +51,7 @@ flowchart TD
 
 WAL 和 MongoDB 数据都需要保留；这里只重放未完成记录，WAL 不代替数据库备份。详见 [一致性说明与限制](wal-demo/README.md#wal-和资产一致性)。
 
-## 开发验证
+## wal-demo 开发验证
 
 在 `wal-demo/` 下执行：
 
@@ -65,6 +67,10 @@ go build -o bin/game-server ./cmd/server
 
 ## 仓库约定
 
-每个 Demo 使用独立子目录。当前 Go 模块位于 `wal-demo/go.mod`，仓库根目录不是 Go 模块。
+- 每个 Demo 使用独立且语义清楚的目录名，例如 `wal-demo/`。
+- 新增 Demo 时，在上方项目入口表中添加链接，并在子目录提供启动、调用和验证说明。
+- 技术栈按当前需求选择；不要求所有 Demo 使用 Go 或 MongoDB。
+- 修改一个 Demo 时保留其他 Demo 的代码和数据。
+- 当前 Go 模块位于 `wal-demo/go.mod`，仓库根目录不是 Go 模块。
 
 面向编码助手的开发指引见 [AGENTS.md](AGENTS.md)。

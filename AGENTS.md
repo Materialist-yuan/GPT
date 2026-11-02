@@ -4,7 +4,11 @@
 
 ## 项目定位和目录
 
-这是游戏资产与持久化机制的 Demo 仓库。先阅读根目录 `README.md` 和 `wal-demo/README.md`。
+这是供用户委托编码助手实现各种 Demo 的工作仓库，不限定业务领域、语言或数据库。先阅读根目录 `README.md`，再阅读目标 Demo 的文档。
+
+用户提出新的 Demo 需求时，在独立子目录实现可运行的最小示例，完成必要的验证并编写 README；不要只给方案。技术栈遵循用户要求，没有指定时按需求选择合理默认值。新增 Demo 后更新根 README 的入口表。不要重写或清理其他 Demo，除非当前需求明确涉及它们。
+
+当前已有 `wal-demo`，目录如下：
 
 - `wal-demo/cmd/server/`：配置、启动时恢复、HTTP 服务和退出流程。
 - `wal-demo/internal/game/`：资产规则、MongoDB 存储、幂等与写入编排。
@@ -14,7 +18,7 @@
 
 新 Demo 放入独立子目录。不要将模块、构建产物或数据库文件搬到仓库根目录。当前 Go 模块为 `github.com/Materialist-yuan/GPT/wal-demo`。
 
-## 环境和命令
+## wal-demo 环境和命令
 
 使用当前隔离环境的已有检出；除非用户要求，不创建 Git worktree。以下命令从仓库根目录进入 `wal-demo/` 后执行：
 
@@ -44,7 +48,7 @@ MONGO_TEST_URI=mongodb://127.0.0.1:27017 go test -race -count=1 ./...
 
 仅修改文档时，检查相对链接、目录、命令和事实即可。修改资产逻辑、WAL 或存储时，运行相关测试与完整数据库链路检查；补充能揭示行为错误的测试。
 
-## 必须保持的资产一致性约束
+## wal-demo 必须保持的资产一致性约束
 
 1. 资产写入顺序为：WAL intent 同步落盘 → MongoDB 提交 → WAL complete 同步落盘 → 返回结果。不能提前返回成功。
 2. 金币、背包、版本号和幂等回执必须在同一条 MongoDB 文档更新中原子提交，保留版本号 CAS 和持久化写关注。
@@ -60,5 +64,5 @@ MONGO_TEST_URI=mongodb://127.0.0.1:27017 go test -race -count=1 ./...
 - 保留 `wal-demo/data/` 和 Docker 卷 `game-assets-mongo-data`，不要为排查问题删除真实资产数据。测试使用独立测试数据库并清理自己的数据。
 - WAL 只恢复未完成操作；已完成记录不能自动恢复丢失的 MongoDB。WAL 与回执当前没有清理机制，需考虑磁盘增长和 MongoDB 的 16 MiB 单文档限制。
 - 不提交 `bin/`、`data/`、`.env`、凭据、缓存和运行日志；`.env.example` 只含非敏感示例。
-- 使用 `gofmt`，依赖变化同步更新 `go.mod` 和 `go.sum`。接口或运行方式改变时同步更新文档。
+- 各 Demo 使用各自工具链和验证方式。Go 代码使用 `gofmt`，Go 依赖变化同步更新模块内的 `go.mod` 和 `go.sum`。接口或运行方式改变时同步更新对应文档。
 - 提交前检查 `git status` 和差异，保留用户已有修改。推送按用户授权执行，不强推、不覆盖远端历史。
