@@ -9,8 +9,9 @@
 | 项目 | 内容 | 文档 |
 | --- | --- | --- |
 | [wal-demo](wal-demo/) | 游戏资产：同步写库基线与分片 Actor / 批量 WAL / 后台快照对照 | [启动与接口说明](wal-demo/README.md) |
+| [game-platform](game-platform/) | 游戏账号登录、角色选择、自定义 TCP 网关与压测机器人（Go + PostgreSQL + Redis） | [启动、协议与压测说明](game-platform/README.md) |
 
-目前已有 `wal-demo`：Go + MongoDB 的游戏资产与 WAL 恢复示例。Actor 路径已支持日志分段与安全回收；尚未实现登录鉴权、跨玩家交易和回执清理。
+`wal-demo`：Go + MongoDB 的游戏资产与 WAL 恢复示例。Actor 路径已支持日志分段与安全回收；尚未实现登录鉴权、跨玩家交易和回执清理。
 
 想学习生产设计，可从 [开源调研](wal-demo/docs/research.md)、[Actor 架构与故障练习](wal-demo/docs/actor-guide.md) 和 [实际验证记录](wal-demo/docs/validation.md) 开始。下文快速运行及流程图介绍同步基线；新增 Actor 路径默认端口 8081，MongoDB 快照在后台保存。
 
@@ -75,6 +76,6 @@ go build -o bin/game-server ./cmd/server
 - 新增 Demo 时，在上方项目入口表中添加链接，并在子目录提供启动、调用和验证说明。
 - 技术栈按当前需求选择；不要求所有 Demo 使用 Go 或 MongoDB。
 - 修改一个 Demo 时保留其他 Demo 的代码和数据。
-- 当前 Go 模块位于 `wal-demo/go.mod`，仓库根目录不是 Go 模块。
+- Go 模块分别位于 `wal-demo/go.mod` 和 `game-platform/go.mod`，仓库根目录不是 Go 模块。
 
 面向编码助手的开发指引见 [AGENTS.md](AGENTS.md)。

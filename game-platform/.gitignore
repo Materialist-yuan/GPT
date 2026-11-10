@@ -1,0 +1,6 @@
+.env
+bin/
+reports/*
+!reports/.gitkeep
+*.log
+coverage.out

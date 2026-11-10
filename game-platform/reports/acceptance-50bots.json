@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-11-10T13:26:34.798242311Z",
+  "ended_at": "2026-11-10T13:27:17.975587574Z",
+  "parameters": {
+    "login_url": "http://login:8080",
+    "gateway_override": "gateway:9000",
+    "server_id": "s1",
+    "account_prefix": "b4277f2efc32b",
+    "bots": 50,
+    "duration_seconds": 30,
+    "ramp_seconds": 5,
+    "messages_per_bot_per_second": 20,
+    "payload_data_bytes": 128,
+    "tls": false
+  },
+  "preparation_seconds": 13.176381737,
+  "prepared_accounts": 50,
+  "preparation_failures": 0,
+  "load_seconds": 30.000920132,
+  "interrupted": false,
+  "passed": true,
+  "counters": {
+    "connection_attempts": 50,
+    "connections_succeeded": 50,
+    "connections_failed": 0,
+    "authentications_succeeded": 50,
+    "authentications_failed": 0,
+    "session_refreshes_succeeded": 0,
+    "session_refreshes_failed": 0,
+    "ticket_requests_failed": 0,
+    "peak_online": 50,
+    "messages_attempted": 27470,
+    "messages_succeeded": 27470,
+    "messages_failed": 0,
+    "messages_canceled_at_end": 0,
+    "timeouts": 0,
+    "tcp_bytes_sent": 3888262,
+    "tcp_bytes_received": 3961355,
+    "bots_canceled_before_authentication": 0
+  },
+  "achieved_messages_per_second": 915.6385830546432,
+  "message_error_rate": 0,
+  "connect_latency": {
+    "samples": 50,
+    "mean_ms": 1.0405225,
+    "p50_ms": 1.06,
+    "p95_ms": 1.554,
+    "p99_ms": 2.505,
+    "max_ms": 2.432962
+  },
+  "auth_latency": {
+    "samples": 50,
+    "mean_ms": 0.49262408,
+    "p50_ms": 0.446,
+    "p95_ms": 0.875,
+    "p99_ms": 1.412,
+    "max_ms": 1.336352
+  },
+  "message_latency": {
+    "samples": 27470,
+    "mean_ms": 0.12893112959592282,
+    "p50_ms": 0.104,
+    "p95_ms": 0.227,
+    "p99_ms": 0.795,
+    "max_ms": 6.189869
+  },
+  "error_samples": []
+}

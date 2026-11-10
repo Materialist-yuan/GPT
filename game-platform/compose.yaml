@@ -1,0 +1,104 @@
+name: game-platform
+
+x-common: &common
+  restart: unless-stopped
+  init: true
+  security_opt: [no-new-privileges:true]
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: "3"}
+
+services:
+  postgres:
+    <<: *common
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: game
+      POSTGRES_DB: game
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/init-env.sh first}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U game -d game]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    <<: *common
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Run scripts/init-env.sh first}
+    command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD" --maxmemory 256mb --maxmemory-policy noeviction']
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: {context: ., target: migrate}
+    environment:
+      DATABASE_URL: postgres://game:${POSTGRES_PASSWORD}@postgres:5432/game?sslmode=disable
+    depends_on:
+      postgres: {condition: service_healthy}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+
+  login:
+    <<: *common
+    cap_drop: [ALL]
+    build: {context: ., target: login}
+    environment:
+      LOGIN_ADDR: :8080
+      DATABASE_URL: postgres://game:${POSTGRES_PASSWORD}@postgres:5432/game?sslmode=disable
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?Run scripts/init-env.sh first}
+      SERVER_ID: ${SERVER_ID:-s1}
+      GATEWAY_PUBLIC_ADDR: ${GATEWAY_PUBLIC_ADDR:-127.0.0.1:9000}
+      AUTH_RATE_LIMIT: ${AUTH_RATE_LIMIT:-600}
+    ports: ["${LOGIN_BIND_ADDR:-127.0.0.1}:8080:8080"]
+    read_only: true
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+  gateway:
+    <<: *common
+    cap_drop: [ALL]
+    build: {context: ., target: gateway}
+    environment:
+      GATEWAY_ADDR: :9000
+      GATEWAY_ADMIN_ADDR: :9091
+      SERVER_ID: ${SERVER_ID:-s1}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      GATEWAY_MAX_CONNECTIONS: ${GATEWAY_MAX_CONNECTIONS:-10000}
+    ports:
+      - "${GATEWAY_BIND_ADDR:-127.0.0.1}:9000:9000"
+      - "127.0.0.1:9091:9091"
+    read_only: true
+    ulimits:
+      nofile:
+        soft: ${GATEWAY_NOFILE:-16384}
+        hard: ${GATEWAY_NOFILE:-16384}
+    depends_on:
+      redis: {condition: service_healthy}
+
+  robot:
+    profiles: [tools]
+    build: {context: ., target: robot}
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      ROBOT_LOGIN_URL: http://login:8080
+      ROBOT_GATEWAY: gateway:9000
+      ROBOT_SERVER_ID: ${SERVER_ID:-s1}
+      NO_PROXY: login,gateway,localhost,127.0.0.1,::1
+    command: [-login-url, "http://login:8080", -gateway, "gateway:9000", -bots, "50", -duration, 30s, -ramp, 5s, -rate, "2", -report, /reports/latest.json]
+    volumes: [./reports:/reports]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    depends_on: [login, gateway]
+
+volumes:
+  postgres-data:
+  redis-data:
